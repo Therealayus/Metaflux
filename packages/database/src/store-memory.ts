@@ -1,4 +1,7 @@
 import type {
+  ApiKeyPublic,
+  ApiKeyRecord,
+  ApiRequestRecord,
   AssetInput,
   AssetRecord,
   ConnectionRecord,
@@ -9,7 +12,11 @@ import type {
   EventRecord,
   ExecutionRecord,
   LeadRecord,
+  MembershipRecord,
+  OrganizationRecord,
+  SessionRecord,
   Store,
+  UserRecord,
   WorkflowRecord,
   WorkspaceRecord,
 } from "./store.js";
@@ -437,5 +444,207 @@ export class MemoryStore implements Store {
       items: page,
       nextCursor: items.length > limit && last ? encodeEventCursor(last.createdAt, last.id) : undefined,
     };
+  }
+
+  users = new Map<string, UserRecord>();
+  usersByEmail = new Map<string, string>();
+  organizations = new Map<string, OrganizationRecord>();
+  memberships = new Map<string, MembershipRecord>();
+  sessions = new Map<string, SessionRecord>();
+  apiKeys = new Map<string, ApiKeyRecord>();
+  apiRequests: ApiRequestRecord[] = [];
+
+  async createUser(input: { email: string; passwordHash?: string; name?: string }): Promise<UserRecord> {
+    const email = input.email.toLowerCase().trim();
+    if (this.usersByEmail.has(email)) throw Object.assign(new Error("Email already registered"), { status: 409 });
+    const rec: UserRecord = {
+      id: cuid("user"),
+      email,
+      passwordHash: input.passwordHash ?? null,
+      name: input.name ?? null,
+      emailVerifiedAt: null,
+      createdAt: new Date().toISOString(),
+    };
+    this.users.set(rec.id, rec);
+    this.usersByEmail.set(email, rec.id);
+    return rec;
+  }
+
+  async getUserByEmail(email: string): Promise<UserRecord | null> {
+    const id = this.usersByEmail.get(email.toLowerCase().trim());
+    return id ? (this.users.get(id) ?? null) : null;
+  }
+
+  async getUserById(id: string): Promise<UserRecord | null> {
+    return this.users.get(id) ?? null;
+  }
+
+  async createOrganization(input: { name: string; slug: string }): Promise<OrganizationRecord> {
+    if ([...this.organizations.values()].some((o) => o.slug === input.slug)) {
+      throw Object.assign(new Error("Organization slug taken"), { status: 409 });
+    }
+    const rec: OrganizationRecord = { id: cuid("org"), ...input, createdAt: new Date().toISOString() };
+    this.organizations.set(rec.id, rec);
+    return rec;
+  }
+
+  async createMembership(userId: string, organizationId: string, role: string): Promise<MembershipRecord> {
+    const rec: MembershipRecord = { id: cuid("mem"), userId, organizationId, role, createdAt: new Date().toISOString() };
+    this.memberships.set(rec.id, rec);
+    return rec;
+  }
+
+  async getMembership(userId: string, organizationId: string): Promise<MembershipRecord | null> {
+    return [...this.memberships.values()].find((m) => m.userId === userId && m.organizationId === organizationId) ?? null;
+  }
+
+  async listUserMemberships(userId: string): Promise<Array<MembershipRecord & { organization: OrganizationRecord }>> {
+    return [...this.memberships.values()]
+      .filter((m) => m.userId === userId)
+      .map((m) => ({ ...m, organization: this.organizations.get(m.organizationId) as OrganizationRecord }))
+      .filter((m) => m.organization);
+  }
+
+  async createSession(userId: string, tokenHash: string, expiresAt: string): Promise<SessionRecord> {
+    const rec: SessionRecord = { id: cuid("sess"), userId, tokenHash, expiresAt, createdAt: new Date().toISOString() };
+    this.sessions.set(rec.id, rec);
+    return rec;
+  }
+
+  async getSessionByTokenHash(tokenHash: string): Promise<(SessionRecord & { user: UserRecord }) | null> {
+    const sess = [...this.sessions.values()].find((s) => s.tokenHash === tokenHash);
+    if (!sess) return null;
+    if (sess.expiresAt < new Date().toISOString()) {
+      this.sessions.delete(sess.id);
+      return null;
+    }
+    const user = this.users.get(sess.userId);
+    if (!user) return null;
+    return { ...sess, user };
+  }
+
+  async deleteSession(id: string): Promise<void> {
+    this.sessions.delete(id);
+  }
+
+  async updateUserPassword(userId: string, passwordHash: string): Promise<void> {
+    const u = this.users.get(userId);
+    if (!u) throw Object.assign(new Error("User not found"), { status: 404 });
+    this.users.set(userId, { ...u, passwordHash });
+  }
+
+  resets = new Map<string, { userId: string; expiresAt: string; usedAt: string | null }>();
+
+  async createPasswordReset(userId: string, tokenHash: string, expiresAt: string): Promise<void> {
+    this.resets.set(tokenHash, { userId, expiresAt, usedAt: null });
+  }
+
+  async consumePasswordReset(tokenHash: string): Promise<string | null> {
+    const r = this.resets.get(tokenHash);
+    if (!r || r.usedAt || r.expiresAt < new Date().toISOString()) return null;
+    this.resets.set(tokenHash, { ...r, usedAt: new Date().toISOString() });
+    return r.userId;
+  }
+
+  async createApiKey(input: {
+    organizationId: string;
+    name: string;
+    prefix: string;
+    keyHash: string;
+    scopes: string[];
+    expiresAt?: string | null;
+  }): Promise<ApiKeyRecord> {
+    const rec: ApiKeyRecord = {
+      id: cuid("key"),
+      organizationId: input.organizationId,
+      name: input.name,
+      prefix: input.prefix,
+      keyHash: input.keyHash,
+      scopes: input.scopes,
+      expiresAt: input.expiresAt ?? null,
+      lastUsedAt: null,
+      revokedAt: null,
+      createdAt: new Date().toISOString(),
+    };
+    this.apiKeys.set(rec.id, rec);
+    return rec;
+  }
+
+  async listApiKeys(organizationId: string): Promise<ApiKeyPublic[]> {
+    return [...this.apiKeys.values()]
+      .filter((k) => k.organizationId === organizationId)
+      .map(({ keyHash: _h, ...rest }) => rest);
+  }
+
+  async getApiKeyByPrefix(prefix: string): Promise<ApiKeyRecord | null> {
+    return [...this.apiKeys.values()].find((k) => k.prefix === prefix) ?? null;
+  }
+
+  async touchApiKey(id: string): Promise<void> {
+    const k = this.apiKeys.get(id);
+    if (k) this.apiKeys.set(id, { ...k, lastUsedAt: new Date().toISOString() });
+  }
+
+  async revokeApiKey(id: string, organizationId: string): Promise<void> {
+    const k = this.apiKeys.get(id);
+    if (!k || k.organizationId !== organizationId) throw Object.assign(new Error("API key not found"), { status: 404 });
+    this.apiKeys.set(id, { ...k, revokedAt: new Date().toISOString() });
+  }
+
+  async appendApiRequest(input: {
+    organizationId: string;
+    keyId?: string | null;
+    method: string;
+    path: string;
+    status: number;
+    latencyMs: number;
+    requestId?: string;
+  }): Promise<void> {
+    this.apiRequests.push({
+      id: cuid("req"),
+      organizationId: input.organizationId,
+      keyId: input.keyId ?? null,
+      method: input.method,
+      path: input.path,
+      status: input.status,
+      latencyMs: input.latencyMs,
+      requestId: input.requestId ?? null,
+      createdAt: new Date().toISOString(),
+    });
+    if (this.apiRequests.length > 5000) this.apiRequests.splice(0, this.apiRequests.length - 5000);
+  }
+
+  async listApiRequests(
+    organizationId: string,
+    opts: { keyId?: string; status?: number; cursor?: string; limit?: number },
+  ): Promise<{ items: ApiRequestRecord[]; nextCursor?: string }> {
+    const limit = Math.min(Math.max(opts.limit ?? 25, 1), 100);
+    let items = this.apiRequests
+      .filter(
+        (r) =>
+          r.organizationId === organizationId &&
+          (!opts.keyId || r.keyId === opts.keyId) &&
+          (opts.status === undefined || r.status === opts.status),
+      )
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id));
+    if (opts.cursor) {
+      const { receivedAt, id } = decodeEventCursor(opts.cursor);
+      items = items.filter((r) => r.createdAt < receivedAt || (r.createdAt === receivedAt && r.id < id));
+    }
+    const page = items.slice(0, limit);
+    const last = page[page.length - 1];
+    return {
+      items: page,
+      nextCursor: items.length > limit && last ? encodeEventCursor(last.createdAt, last.id) : undefined,
+    };
+  }
+
+  async getApiRequest(id: string, organizationId: string): Promise<ApiRequestRecord | null> {
+    const r = this.apiRequests.find((x) => x.id === id);
+    return r && r.organizationId === organizationId ? r : null;
+  }
+
+  async countApiRequests(organizationId: string, sinceIso: string): Promise<number> {
+    return this.apiRequests.filter((r) => r.organizationId === organizationId && r.createdAt >= sinceIso).length;
   }
 }

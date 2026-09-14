@@ -1,4 +1,5 @@
 import { getStore } from "@metaflux/database";
+import { requireScope } from "@metaflux/auth";
 import { newJob, getQueueDriver } from "@metaflux/queues";
 import { transitionWorkflowStatus, validateWorkflowDefinition, workflowNeedsConfirmation } from "@metaflux/workflows";
 import type { FastifyInstance } from "fastify";
@@ -28,7 +29,7 @@ export async function workflowRoutes(app: FastifyInstance) {
 
   app.post("/api/v1/workflows/validate", async (request, reply) => {
     const reqId = requestId(request);
-    requireTenant(request);
+    await requireTenant(request);
     const parsed = createBody.safeParse(request.body);
     if (!parsed.success) return sendError(reply, 400, "invalid_request", "Invalid workflow payload", reqId, parsed.error.flatten());
     try {
@@ -41,7 +42,7 @@ export async function workflowRoutes(app: FastifyInstance) {
 
   app.post("/api/v1/workflows", async (request, reply) => {
     const reqId = requestId(request);
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "workflows:write");
     const parsed = createBody.safeParse(request.body);
     if (!parsed.success) return sendError(reply, 400, "invalid_request", "Invalid workflow payload", reqId, parsed.error.flatten());
     const workspaceId = parsed.data.workspaceId ?? ctx.workspaceId;
@@ -61,7 +62,7 @@ export async function workflowRoutes(app: FastifyInstance) {
   });
 
   app.get("/api/v1/workflows", async (request, reply) => {
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "workflows:read");
     const parsed = listQuery.safeParse(request.query);
     if (!parsed.success) return sendError(reply, 400, "invalid_request", "Invalid query", requestId(request));
     const listed = await store.listWorkflows(ctx.organizationId, parsed.data);
@@ -69,7 +70,7 @@ export async function workflowRoutes(app: FastifyInstance) {
   });
 
   app.get("/api/v1/workflows/:id", async (request, reply) => {
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "workflows:read");
     const { id } = request.params as { id: string };
     const wf = await store.getWorkflow(id, ctx.organizationId);
     if (!wf) return sendError(reply, 404, "not_found", "Workflow not found", requestId(request));
@@ -78,7 +79,7 @@ export async function workflowRoutes(app: FastifyInstance) {
 
   app.patch("/api/v1/workflows/:id", async (request, reply) => {
     const reqId = requestId(request);
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "workflows:write");
     const { id } = request.params as { id: string };
     const parsed = updateBody.safeParse(request.body);
     if (!parsed.success) return sendError(reply, 400, "invalid_request", "Invalid update", reqId, parsed.error.flatten());
@@ -108,7 +109,7 @@ export async function workflowRoutes(app: FastifyInstance) {
 
   app.delete("/api/v1/workflows/:id", async (request, reply) => {
     const reqId = requestId(request);
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "workflows:write");
     if (request.headers["x-confirm"] !== "true") {
       return sendError(reply, 428, "confirmation_required", "Deleting a workflow stops its automations. Retry with x-confirm: true.", reqId);
     }
@@ -119,7 +120,7 @@ export async function workflowRoutes(app: FastifyInstance) {
   });
 
   app.get("/api/v1/workflows/:id/executions", async (request, reply) => {
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "workflows:read");
     const { id } = request.params as { id: string };
     const q = request.query as { cursor?: string; limit?: string };
     const listed = await store.listExecutions(id, ctx.organizationId, {
@@ -130,7 +131,7 @@ export async function workflowRoutes(app: FastifyInstance) {
   });
 
   app.get("/api/v1/executions/:id", async (request, reply) => {
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "workflows:read");
     const { id } = request.params as { id: string };
     const exe = await store.getExecution(id, ctx.organizationId);
     if (!exe) return sendError(reply, 404, "not_found", "Execution not found", requestId(request));
@@ -140,7 +141,7 @@ export async function workflowRoutes(app: FastifyInstance) {
   // Retry a failed execution from the trigger (fresh run, new idempotency key).
   app.post("/api/v1/executions/:id/retry", async (request, reply) => {
     const reqId = requestId(request);
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "workflows:write");
     const { id } = request.params as { id: string };
     const exe = await store.getExecution(id, ctx.organizationId);
     if (!exe) return sendError(reply, 404, "not_found", "Execution not found", reqId);
@@ -163,7 +164,7 @@ export async function workflowRoutes(app: FastifyInstance) {
   });
 
   app.get("/api/v1/leads", async (request, reply) => {
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "leads:read");
     const q = request.query as { workspaceId?: string; cursor?: string; limit?: string };
     const listed = await store.listLeads(ctx.organizationId, {
       workspaceId: q.workspaceId,

@@ -9,3 +9,4 @@ export * from "./oauth.js";
 export * from "./discovery.js";
 export * from "./health.js";
 export * from "./messaging.js";
+export * from "./sending.js";

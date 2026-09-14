@@ -8,7 +8,7 @@ export async function healthRoutes(app: FastifyInstance) {
   });
 
   app.get("/api/v1/health/connections", async (request, reply) => {
-    const ctx = requireTenant(request);
+    const ctx = await requireTenant(request);
     // Foundation: no connections yet — honest empty state, never fake data.
     return reply.send({
       data: { organizationId: ctx.organizationId, connections: [], message: "No Meta connections yet." },

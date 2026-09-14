@@ -14,8 +14,9 @@ import {
 } from "@metaflux/database";
 import {
   MetaApiClient,
-  createMetaMessagingProvider,
   extractSenderId,
+  parseChannel,
+  resolveSender,
 } from "@metaflux/meta";
 import { decryptToken } from "@metaflux/security";
 import { childLogger } from "@metaflux/observability";
@@ -64,40 +65,25 @@ interface MessagingCtx {
   send: (input: { channel: "whatsapp" | "instagram" | "facebook"; recipient: string; text: string; idempotencyKey: string }) => Promise<{ providerMessageId: string }>;
 }
 
-/** Resolve a Meta messaging provider for a channel from live connections + assets. */
+/** Resolve a Meta messaging sender for a channel from live connections + assets. */
 async function resolveMessaging(
   store: Store,
   organizationId: string,
   workspaceId: string,
   channel: string,
-): Promise<MessagingCtx | null> {
-  const product = channel === "whatsapp" ? "whatsapp" : channel === "instagram" ? "instagram" : "facebook";
-  const conns = await store.listConnections(organizationId, workspaceId);
-  const conn = conns.find((c) => c.product === product && c.encryptedToken);
-  if (!conn?.encryptedToken) return null;
+): Promise<MessagingCtx> {
+  const parsed = parseChannel(channel);
+  const connections = await store.listConnections(organizationId, workspaceId);
+  const assets = await store.listAssets(organizationId, workspaceId);
   const key = tokenKey();
-  const userToken = decryptToken(conn.encryptedToken, key);
-  const assets = (await store.listAssets(organizationId, workspaceId)).filter((a) => a.connectionId === conn.id);
-
-  if (channel === "whatsapp") {
-    const phone = assets.find((a) => a.type === "phone_number");
-    if (!phone) return null;
-    const provider = createMetaMessagingProvider(new MetaApiClient(META_VERSION), {
-      accessToken: userToken,
-      whatsappPhoneNumberId: phone.metaId,
-    });
-    return { send: async (input) => provider.sendMessage(input) };
-  }
-
-  const sender = assets.find((a) => a.type === "instagram_business_account" || a.type === "facebook_page");
-  if (!sender) return null;
-  // Page sends require the page-scoped token stored on the asset; fall back to the user token.
-  const token = sender.encryptedToken ? decryptToken(sender.encryptedToken, key) : userToken;
-  const provider = createMetaMessagingProvider(new MetaApiClient(META_VERSION), {
-    accessToken: token,
-    senderId: sender.metaId,
+  const { provider } = resolveSender({
+    channel: parsed,
+    connections: connections.map((c) => ({ id: c.id, product: c.product, encryptedToken: c.encryptedToken })),
+    assets: assets.map((a) => ({ connectionId: a.connectionId, type: a.type, metaId: a.metaId, encryptedToken: a.encryptedToken })),
+    decrypt: (ciphertext) => decryptToken(ciphertext, key),
+    client: new MetaApiClient(META_VERSION),
   });
-  return { send: async (input) => provider.sendMessage(input) };
+  return { send: async (input) => provider.sendMessage({ ...input, channel: parsed }) };
 }
 
 function servicesFor(
@@ -109,16 +95,9 @@ function servicesFor(
 ): EngineServices {
   return {
     sendMessage: async (input) => {
-      if (input.channel !== "whatsapp" && input.channel !== "instagram" && input.channel !== "facebook") {
-        throw new Error(`Unsupported message channel: ${input.channel}`);
-      }
-      const resolved = await resolveMessaging(store, organizationId, workspaceId, input.channel);
-      if (!resolved) {
-        throw new Error(
-          `No connected ${input.channel} sender — connect the account and run asset discovery first`,
-        );
-      }
-      return resolved.send({ ...input, channel: input.channel });
+      const channel = parseChannel(input.channel);
+      const resolved = await resolveMessaging(store, organizationId, workspaceId, channel);
+      return resolved.send({ ...input, channel });
     },
     createLead: async (input) => {
       const lead = await store.createLead({

@@ -18,6 +18,20 @@ export function assertSameOrg(ctx: TenantContext, rowOrganizationId: string): vo
   }
 }
 
+/** API-key scope check. Sessions carry "*" and bypass fine-grained scopes. */
+export function requireScope(ctx: TenantContext, scope: string): TenantContext {
+  if (ctx.scopes.includes("*") || ctx.scopes.includes(scope)) return ctx;
+  throw Object.assign(new Error(`Missing required scope: ${scope}`), { status: 403, code: "insufficient_scope" });
+}
+
+/** Key management (create/revoke) requires a human session, never another API key. */
+export function requireSession(ctx: TenantContext): TenantContext {
+  if (ctx.apiKeyId) throw Object.assign(new Error("This action requires user sign-in"), { status: 403 });
+  return ctx;
+}
+
+export * from "./credentials.js";
+
 export function isDestructiveAction(action: string): boolean {
   return /delete|disconnect|revoke|remove|destroy/i.test(action);
 }

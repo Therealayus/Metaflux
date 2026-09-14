@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { FluxMark } from "@/components/flux-mark";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+
 function Shell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink-950 px-5 py-12">
@@ -20,12 +22,26 @@ function Shell({ title, subtitle, children }: { title: string; subtitle: string;
   );
 }
 
+async function post(path: string, body: unknown): Promise<{ ok: boolean; message?: string; data?: { devToken?: string } }> {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json().catch(() => ({}))) as { message?: string; data?: { devToken?: string } };
+  return { ok: res.ok, message: data.message, data: data.data };
+}
+
 export function AuthForm({ mode }: { mode: "signin" | "signup" | "reset" }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
       setError("Enter a valid email address.");
@@ -36,16 +52,62 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" | "reset" }) {
       return;
     }
     setError(null);
-    // Foundation: auth UI only — real session endpoints land with the auth service.
-    window.location.href = "/home";
+    setNotice(null);
+    setBusy(true);
+    try {
+      if (mode === "signup") {
+        const r = await post("/api/v1/auth/signup", { email, password, name: name || undefined });
+        if (!r.ok) throw new Error(r.message ?? "Sign up failed");
+        window.location.href = "/home";
+      } else if (mode === "signin") {
+        const r = await post("/api/v1/auth/signin", { email, password });
+        if (!r.ok) throw new Error(r.message ?? "Sign in failed");
+        window.location.href = "/home";
+      } else {
+        const r = await post("/api/v1/auth/password-reset/request", { email });
+        if (!r.ok) throw new Error(r.message ?? "Request failed");
+        setNotice(
+          r.data?.devToken
+            ? `Dev build: reset token ${r.data.devToken} (redeem via the API; email delivery is configured per deployment).`
+            : "If that email exists, a reset link is on its way.",
+        );
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function oauth(provider: "google" | "github") {
+    setError(null);
+    try {
+      const res = await fetch(`${API_URL}/api/v1/auth/${provider}/start`, { credentials: "include" });
+      const data = (await res.json()) as { data?: { url?: string }; message?: string };
+      if (!res.ok || !data.data?.url) throw new Error(data.message ?? `${provider} sign-in is not configured on this instance`);
+      window.location.href = data.data.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "OAuth failed");
+    }
   }
 
   return (
     <Shell
       title={mode === "signin" ? "Welcome back" : mode === "signup" ? "Create your workspace" : "Reset password"}
-      subtitle="Secure session cookies. MFA-ready. Rate-limited and brute-force protected."
+      subtitle="Secure httpOnly session cookies. Rate-limited and brute-force protected."
     >
-      <form onSubmit={submit} className="space-y-4" noValidate>
+      <form onSubmit={(e) => void submit(e)} className="space-y-4" noValidate>
+        {mode === "signup" ? (
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-medium text-zinc-300">Name</span>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ada Lovelace"
+              className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400/60 focus:outline-none"
+            />
+          </label>
+        ) : null}
         <label className="block">
           <span className="mb-1.5 block text-xs font-medium text-zinc-300">Work email</span>
           <input
@@ -69,14 +131,17 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" | "reset" }) {
           </label>
         ) : null}
         {error ? <p className="text-xs text-red-300">{error}</p> : null}
-        <button type="submit" className="h-10 w-full rounded-lg bg-indigo-500 text-sm font-medium text-white hover:bg-indigo-400">
-          {mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link"}
+        {notice ? <p className="text-xs text-emerald-300">{notice}</p> : null}
+        <button type="submit" disabled={busy} className="h-10 w-full rounded-lg bg-indigo-500 text-sm font-medium text-white hover:bg-indigo-400 disabled:opacity-60">
+          {busy ? "Working…" : mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link"}
         </button>
       </form>
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <button className="h-10 rounded-lg border border-white/10 bg-white/[0.03] text-sm text-zinc-200 hover:bg-white/[0.06]">Google</button>
-        <button className="h-10 rounded-lg border border-white/10 bg-white/[0.03] text-sm text-zinc-200 hover:bg-white/[0.06]">GitHub</button>
-      </div>
+      {mode !== "reset" ? (
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <button onClick={() => void oauth("google")} className="h-10 rounded-lg border border-white/10 bg-white/[0.03] text-sm text-zinc-200 hover:bg-white/[0.06]">Google</button>
+          <button onClick={() => void oauth("github")} className="h-10 rounded-lg border border-white/10 bg-white/[0.03] text-sm text-zinc-200 hover:bg-white/[0.06]">GitHub</button>
+        </div>
+      ) : null}
       <div className="mt-5 flex justify-between text-xs text-zinc-500">
         {mode === "signin" ? (
           <>

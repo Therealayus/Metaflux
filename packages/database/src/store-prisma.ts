@@ -1,5 +1,8 @@
 import { getPrisma } from "./prisma.js";
 import type {
+  ApiKeyPublic,
+  ApiKeyRecord,
+  ApiRequestRecord,
   AssetInput,
   AssetRecord,
   ConnectionRecord,
@@ -10,7 +13,11 @@ import type {
   EventRecord,
   ExecutionRecord,
   LeadRecord,
+  MembershipRecord,
+  OrganizationRecord,
+  SessionRecord,
   Store,
+  UserRecord,
   WorkflowRecord,
   WorkspaceRecord,
 } from "./store.js";
@@ -525,6 +532,222 @@ export class PrismaStore implements Store {
       items: page.map((l) => ({ ...l, attributes: (l.attributes ?? null) as unknown, createdAt: l.createdAt.toISOString() })),
       nextCursor: rows.length > limit && last ? encodeEventCursor(last.createdAt.toISOString(), last.id) : undefined,
     };
+  }
+
+  private toUser(u: { id: string; email: string; passwordHash: string | null; name: string | null; emailVerifiedAt: Date | null; createdAt: Date }): UserRecord {
+    return { ...u, emailVerifiedAt: u.emailVerifiedAt?.toISOString() ?? null, createdAt: u.createdAt.toISOString() };
+  }
+
+  async createUser(input: { email: string; passwordHash?: string; name?: string }): Promise<UserRecord> {
+    try {
+      const u = await getPrisma().user.create({
+        data: { email: input.email.toLowerCase().trim(), passwordHash: input.passwordHash, name: input.name },
+      });
+      return this.toUser(u);
+    } catch (err) {
+      if ((err as { code?: string }).code === "P2002") {
+        throw Object.assign(new Error("Email already registered"), { status: 409 });
+      }
+      throw err;
+    }
+  }
+
+  async getUserByEmail(email: string): Promise<UserRecord | null> {
+    const u = await getPrisma().user.findUnique({ where: { email: email.toLowerCase().trim() } });
+    return u ? this.toUser(u) : null;
+  }
+
+  async getUserById(id: string): Promise<UserRecord | null> {
+    const u = await getPrisma().user.findUnique({ where: { id } });
+    return u ? this.toUser(u) : null;
+  }
+
+  async createOrganization(input: { name: string; slug: string }): Promise<OrganizationRecord> {
+    try {
+      const o = await getPrisma().organization.create({ data: input });
+      return { ...o, createdAt: o.createdAt.toISOString() };
+    } catch (err) {
+      if ((err as { code?: string }).code === "P2002") {
+        throw Object.assign(new Error("Organization slug taken"), { status: 409 });
+      }
+      throw err;
+    }
+  }
+
+  async createMembership(userId: string, organizationId: string, role: string): Promise<MembershipRecord> {
+    const m = await getPrisma().membership.create({ data: { userId, organizationId, role } });
+    return { ...m, createdAt: m.createdAt.toISOString() };
+  }
+
+  async getMembership(userId: string, organizationId: string): Promise<MembershipRecord | null> {
+    const m = await getPrisma().membership.findUnique({ where: { userId_organizationId: { userId, organizationId } } });
+    return m ? { ...m, createdAt: m.createdAt.toISOString() } : null;
+  }
+
+  async listUserMemberships(userId: string): Promise<Array<MembershipRecord & { organization: OrganizationRecord }>> {
+    const rows = await getPrisma().membership.findMany({ where: { userId }, include: { organization: true } });
+    return rows.map((m) => ({
+      id: m.id,
+      userId: m.userId,
+      organizationId: m.organizationId,
+      role: m.role,
+      createdAt: m.createdAt.toISOString(),
+      organization: { ...m.organization, createdAt: m.organization.createdAt.toISOString() },
+    }));
+  }
+
+  async createSession(userId: string, tokenHash: string, expiresAt: string): Promise<SessionRecord> {
+    const s = await getPrisma().session.create({ data: { userId, tokenHash, expiresAt: new Date(expiresAt) } });
+    return { ...s, expiresAt: s.expiresAt.toISOString(), createdAt: s.createdAt.toISOString() };
+  }
+
+  async getSessionByTokenHash(tokenHash: string): Promise<(SessionRecord & { user: UserRecord }) | null> {
+    const s = await getPrisma().session.findUnique({ where: { tokenHash }, include: { user: true } });
+    if (!s) return null;
+    if (s.expiresAt < new Date()) {
+      await getPrisma().session.delete({ where: { id: s.id } }).catch(() => undefined);
+      return null;
+    }
+    return {
+      id: s.id,
+      userId: s.userId,
+      tokenHash: s.tokenHash,
+      expiresAt: s.expiresAt.toISOString(),
+      createdAt: s.createdAt.toISOString(),
+      user: this.toUser(s.user),
+    };
+  }
+
+  async deleteSession(id: string): Promise<void> {
+    await getPrisma().session.delete({ where: { id } }).catch(() => undefined);
+  }
+
+  async updateUserPassword(userId: string, passwordHash: string): Promise<void> {
+    await getPrisma().user.update({ where: { id: userId }, data: { passwordHash } });
+  }
+
+  async createPasswordReset(userId: string, tokenHash: string, expiresAt: string): Promise<void> {
+    await getPrisma().passwordReset.create({ data: { userId, tokenHash, expiresAt: new Date(expiresAt) } });
+  }
+
+  async consumePasswordReset(tokenHash: string): Promise<string | null> {
+    const r = await getPrisma().passwordReset.findUnique({ where: { tokenHash } });
+    if (!r || r.usedAt || r.expiresAt < new Date()) return null;
+    await getPrisma().passwordReset.update({ where: { id: r.id }, data: { usedAt: new Date() } });
+    return r.userId;
+  }
+
+  async createApiKey(input: {
+    organizationId: string;
+    name: string;
+    prefix: string;
+    keyHash: string;
+    scopes: string[];
+    expiresAt?: string | null;
+  }): Promise<ApiKeyRecord> {
+    const k = await getPrisma().apiKey.create({
+      data: { ...input, expiresAt: input.expiresAt ? new Date(input.expiresAt) : null },
+    });
+    return {
+      ...k,
+      expiresAt: k.expiresAt?.toISOString() ?? null,
+      lastUsedAt: k.lastUsedAt?.toISOString() ?? null,
+      revokedAt: k.revokedAt?.toISOString() ?? null,
+      createdAt: k.createdAt.toISOString(),
+    };
+  }
+
+  async listApiKeys(organizationId: string): Promise<ApiKeyPublic[]> {
+    const rows = await getPrisma().apiKey.findMany({ where: { organizationId }, orderBy: { createdAt: "desc" } });
+    return rows.map(({ keyHash: _h, ...rest }) => ({
+      ...rest,
+      expiresAt: rest.expiresAt?.toISOString() ?? null,
+      lastUsedAt: rest.lastUsedAt?.toISOString() ?? null,
+      revokedAt: rest.revokedAt?.toISOString() ?? null,
+      createdAt: rest.createdAt.toISOString(),
+    }));
+  }
+
+  async getApiKeyByPrefix(prefix: string): Promise<ApiKeyRecord | null> {
+    const k = await getPrisma().apiKey.findUnique({ where: { prefix } });
+    if (!k) return null;
+    return {
+      ...k,
+      expiresAt: k.expiresAt?.toISOString() ?? null,
+      lastUsedAt: k.lastUsedAt?.toISOString() ?? null,
+      revokedAt: k.revokedAt?.toISOString() ?? null,
+      createdAt: k.createdAt.toISOString(),
+    };
+  }
+
+  async touchApiKey(id: string): Promise<void> {
+    await getPrisma().apiKey.update({ where: { id }, data: { lastUsedAt: new Date() } }).catch(() => undefined);
+  }
+
+  async revokeApiKey(id: string, organizationId: string): Promise<void> {
+    const k = await getPrisma().apiKey.findFirst({ where: { id, organizationId } });
+    if (!k) throw Object.assign(new Error("API key not found"), { status: 404 });
+    await getPrisma().apiKey.update({ where: { id }, data: { revokedAt: new Date() } });
+  }
+
+  async appendApiRequest(input: {
+    organizationId: string;
+    keyId?: string | null;
+    method: string;
+    path: string;
+    status: number;
+    latencyMs: number;
+    requestId?: string;
+  }): Promise<void> {
+    await getPrisma().apiRequest.create({
+      data: {
+        organizationId: input.organizationId,
+        keyId: input.keyId ?? null,
+        method: input.method,
+        path: input.path,
+        status: input.status,
+        latencyMs: input.latencyMs,
+        requestId: input.requestId,
+      },
+    });
+  }
+
+  async listApiRequests(
+    organizationId: string,
+    opts: { keyId?: string; status?: number; cursor?: string; limit?: number },
+  ): Promise<{ items: ApiRequestRecord[]; nextCursor?: string }> {
+    const limit = Math.min(Math.max(opts.limit ?? 25, 1), 100);
+    let cursorFilter = {};
+    if (opts.cursor) {
+      const { receivedAt, id } = decodeEventCursor(opts.cursor);
+      const at = new Date(receivedAt);
+      cursorFilter = { OR: [{ createdAt: { lt: at } }, { createdAt: at, id: { lt: id } }] };
+    }
+    const rows = await getPrisma().apiRequest.findMany({
+      where: {
+        organizationId,
+        ...(opts.keyId ? { keyId: opts.keyId } : {}),
+        ...(opts.status !== undefined ? { status: opts.status } : {}),
+        ...cursorFilter,
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+    });
+    const page = rows.slice(0, limit);
+    const last = page[page.length - 1];
+    return {
+      items: page.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
+      nextCursor: rows.length > limit && last ? encodeEventCursor(last.createdAt.toISOString(), last.id) : undefined,
+    };
+  }
+
+  async getApiRequest(id: string, organizationId: string): Promise<ApiRequestRecord | null> {
+    const r = await getPrisma().apiRequest.findFirst({ where: { id, organizationId } });
+    return r ? { ...r, createdAt: r.createdAt.toISOString() } : null;
+  }
+
+  async countApiRequests(organizationId: string, sinceIso: string): Promise<number> {
+    return getPrisma().apiRequest.count({ where: { organizationId, createdAt: { gte: new Date(sinceIso) } } });
   }
 }
 

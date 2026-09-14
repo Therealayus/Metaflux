@@ -22,6 +22,7 @@ import {
 } from "@metaflux/meta";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { requireScope } from "@metaflux/auth";
 import { getStore } from "@metaflux/database";
 import type { Store } from "@metaflux/database";
 import { requestId, requireTenant, sendError } from "../tenant.js";
@@ -92,7 +93,7 @@ export async function aiRoutes(app: FastifyInstance) {
 
   app.post("/api/v1/ai/plan", async (request, reply) => {
     const reqId = requestId(request);
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "ai:use");
     const parsed = planBody.safeParse(request.body);
     if (!parsed.success) return sendError(reply, 400, "invalid_request", "Prompt is required", reqId, parsed.error.flatten());
 
@@ -139,7 +140,7 @@ export async function aiRoutes(app: FastifyInstance) {
 
   app.post("/api/v1/ai/explain", async (request, reply) => {
     const reqId = requestId(request);
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "ai:use");
     const parsed = explainBody.safeParse(request.body);
     if (!parsed.success) return sendError(reply, 400, "invalid_request", "permission is required", reqId);
     const def = permRegistry.get(parsed.data.permission);
@@ -166,7 +167,7 @@ export async function aiRoutes(app: FastifyInstance) {
 
   app.post("/api/v1/ai/diagnose", async (request, reply) => {
     const reqId = requestId(request);
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "ai:use");
     const parsed = diagnoseBody.safeParse(request.body);
     if (!parsed.success) return sendError(reply, 400, "invalid_request", "Invalid diagnose payload", reqId);
 
@@ -222,7 +223,7 @@ export async function aiRoutes(app: FastifyInstance) {
   });
 
   app.get("/api/v1/ai/usage", async (request, reply) => {
-    const ctx = requireTenant(request);
+    const ctx = await requireTenant(request);
     const spent = await budgets.sumCostCentsSince(ctx.organizationId, monthStartIso());
     return reply.send({
       data: { spentCents: Math.round(spent * 100) / 100, budgetCents: monthlyBudgetCents(), monthStart: monthStartIso() },

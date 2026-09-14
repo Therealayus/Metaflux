@@ -10,6 +10,10 @@ export interface TenantContext {
   workspaceId?: string;
   role: TenantRole;
   requestId: string;
+  /** Present when authenticated via API key. Session/dev contexts omit it. */
+  apiKeyId?: string;
+  /** Effective scopes: ["*"] for sessions, the key's scopes for API keys. */
+  scopes: string[];
 }
 
 export interface Organization {

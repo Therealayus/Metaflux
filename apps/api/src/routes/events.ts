@@ -3,6 +3,7 @@ import { getQueueDriver, newJob } from "@metaflux/queues";
 import { randomBytes } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { requireScope } from "@metaflux/auth";
 import { persistPayload, payloadStoreFromEnv, readPayload } from "../payloads.js";
 import { requestId, requireTenant, sendError } from "../tenant.js";
 
@@ -25,7 +26,7 @@ export async function eventRoutes(app: FastifyInstance) {
   const payloads = payloadStoreFromEnv();
 
   app.get("/api/v1/events", async (request, reply) => {
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "events:read");
     const parsed = listQuery.safeParse(request.query);
     if (!parsed.success) return sendError(reply, 400, "invalid_request", "Invalid query", requestId(request));
     // Workspace scoping: explicit param wins, else session workspace, else whole org.
@@ -37,7 +38,7 @@ export async function eventRoutes(app: FastifyInstance) {
 
   app.get("/api/v1/events/:id", async (request, reply) => {
     const reqId = requestId(request);
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "events:read");
     const { id } = request.params as { id: string };
     const event = await store.getEvent(id, ctx.organizationId);
     if (!event) return sendError(reply, 404, "not_found", "Event not found", reqId);
@@ -48,7 +49,7 @@ export async function eventRoutes(app: FastifyInstance) {
   // Replay: re-enqueue processing for an existing event with a fresh idempotency key.
   app.post("/api/v1/events/:id/replay", async (request, reply) => {
     const reqId = requestId(request);
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "events:read");
     const { id } = request.params as { id: string };
     const event = await store.getEvent(id, ctx.organizationId);
     if (!event) return sendError(reply, 404, "not_found", "Event not found", reqId);
@@ -66,7 +67,7 @@ export async function eventRoutes(app: FastifyInstance) {
   // Synthetic test event through the real pipeline (developer tooling).
   app.post("/api/v1/webhooks/meta/test", async (request, reply) => {
     const reqId = requestId(request);
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "events:read");
     const parsed = testEventBody.safeParse(request.body);
     if (!parsed.success) return sendError(reply, 400, "invalid_request", "Invalid test event", reqId);
     const workspaceId = ctx.workspaceId;

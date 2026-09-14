@@ -16,6 +16,7 @@ import {
   verifyState,
 } from "@metaflux/meta";
 import { decryptToken, encryptToken } from "@metaflux/security";
+import { requireScope } from "@metaflux/auth";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { getStore } from "@metaflux/database";
@@ -61,7 +62,7 @@ export async function connectionRoutes(app: FastifyInstance) {
   // --- OAuth start: returns the Meta consent URL (frontend redirects the user) ---
   app.get("/api/v1/connections/meta/start", async (request, reply) => {
     const reqId = requestId(request);
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "assets:read");
     const q = request.query as { product?: string; workspaceId?: string };
     if (!q.product || !VALID_PRODUCTS.includes(q.product)) {
       return sendError(reply, 400, "invalid_product", "product must be instagram, whatsapp or facebook", reqId);
@@ -135,7 +136,7 @@ export async function connectionRoutes(app: FastifyInstance) {
 
   // --- List connections (tokens never leave the server) ---
   app.get("/api/v1/connections", async (request, reply) => {
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "assets:read");
     const q = request.query as { workspaceId?: string };
     const conns = await store.listConnections(ctx.organizationId, q.workspaceId);
     const assets = await store.listAssets(ctx.organizationId, q.workspaceId);
@@ -157,7 +158,7 @@ export async function connectionRoutes(app: FastifyInstance) {
 
   // --- Connection detail + assets ---
   app.get("/api/v1/connections/:id", async (request, reply) => {
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "assets:read");
     const { id } = request.params as { id: string };
     const conn = await store.getConnection(id, ctx.organizationId);
     if (!conn) return sendError(reply, 404, "not_found", "Connection not found", requestId(request));
@@ -172,7 +173,7 @@ export async function connectionRoutes(app: FastifyInstance) {
   // --- Discover assets from Meta and persist them ---
   app.post("/api/v1/connections/:id/discover", async (request, reply) => {
     const reqId = requestId(request);
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "workflows:write");
     const { id } = request.params as { id: string };
     const conn = await store.getConnection(id, ctx.organizationId);
     if (!conn) return sendError(reply, 404, "not_found", "Connection not found", reqId);
@@ -209,7 +210,7 @@ export async function connectionRoutes(app: FastifyInstance) {
   // --- Live health check ---
   app.get("/api/v1/connections/:id/health", async (request, reply) => {
     const reqId = requestId(request);
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "assets:read");
     const { id } = request.params as { id: string };
     const conn = await store.getConnection(id, ctx.organizationId);
     if (!conn) return sendError(reply, 404, "not_found", "Connection not found", reqId);
@@ -245,7 +246,7 @@ export async function connectionRoutes(app: FastifyInstance) {
   const subscribeBody = z.object({ fields: z.array(z.string().min(1)).min(1).max(20).default(["feed", "messages"]) });
   app.post("/api/v1/connections/:id/subscribe", async (request, reply) => {
     const reqId = requestId(request);
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "workflows:write");
     const { id } = request.params as { id: string };
     const parsed = subscribeBody.safeParse(request.body ?? {});
     if (!parsed.success) return sendError(reply, 400, "invalid_request", "fields array is required", reqId);
@@ -279,7 +280,7 @@ export async function connectionRoutes(app: FastifyInstance) {
   // --- Disconnect (destructive: explicit confirmation required) ---
   app.delete("/api/v1/connections/:id", async (request, reply) => {
     const reqId = requestId(request);
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "workflows:write");
     if (request.headers["x-confirm"] !== "true") {
       return sendError(
         reply,
@@ -297,7 +298,7 @@ export async function connectionRoutes(app: FastifyInstance) {
 
   // --- Asset graph for the org/workspace ---
   app.get("/api/v1/assets", async (request, reply) => {
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "assets:read");
     const q = request.query as { workspaceId?: string };
     const assets = await store.listAssets(ctx.organizationId, q.workspaceId);
     const graph = buildAssetGraph(
@@ -318,7 +319,7 @@ export async function connectionRoutes(app: FastifyInstance) {
   // --- Granted scopes for a connection (debug_token-backed when configured) ---
   app.get("/api/v1/connections/:id/permissions", async (request, reply) => {
     const reqId = requestId(request);
-    const ctx = requireTenant(request);
+    const ctx = requireScope(await requireTenant(request), "assets:read");
     const { id } = request.params as { id: string };
     const conn = await store.getConnection(id, ctx.organizationId);
     if (!conn) return sendError(reply, 404, "not_found", "Connection not found", reqId);

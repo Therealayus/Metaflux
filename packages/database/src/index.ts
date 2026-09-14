@@ -1,5 +1,8 @@
 export { getPrisma } from "./prisma.js";
 export type {
+  ApiKeyPublic,
+  ApiKeyRecord,
+  ApiRequestRecord,
   AssetInput,
   AssetRecord,
   ConnectionRecord,
@@ -10,7 +13,11 @@ export type {
   EventRecord,
   ExecutionRecord,
   LeadRecord,
+  MembershipRecord,
+  OrganizationRecord,
+  SessionRecord,
   Store,
+  UserRecord,
   WorkflowRecord,
   WorkspaceRecord,
 } from "./store.js";

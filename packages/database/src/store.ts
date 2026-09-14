@@ -158,6 +158,52 @@ export interface Store {
     organizationId: string,
     opts: { workspaceId?: string; cursor?: string; limit?: number },
   ): Promise<{ items: LeadRecord[]; nextCursor?: string }>;
+
+  // Identity
+  createUser(input: { email: string; passwordHash?: string; name?: string }): Promise<UserRecord>;
+  getUserByEmail(email: string): Promise<UserRecord | null>;
+  getUserById(id: string): Promise<UserRecord | null>;
+  createOrganization(input: { name: string; slug: string }): Promise<OrganizationRecord>;
+  createMembership(userId: string, organizationId: string, role: string): Promise<MembershipRecord>;
+  getMembership(userId: string, organizationId: string): Promise<MembershipRecord | null>;
+  listUserMemberships(userId: string): Promise<Array<MembershipRecord & { organization: OrganizationRecord }>>;
+  createSession(userId: string, tokenHash: string, expiresAt: string): Promise<SessionRecord>;
+  getSessionByTokenHash(tokenHash: string): Promise<(SessionRecord & { user: UserRecord }) | null>;
+  deleteSession(id: string): Promise<void>;
+  updateUserPassword(userId: string, passwordHash: string): Promise<void>;
+  createPasswordReset(userId: string, tokenHash: string, expiresAt: string): Promise<void>;
+  consumePasswordReset(tokenHash: string): Promise<string | null>;
+
+  // API keys (hashes only — raw keys never persist)
+  createApiKey(input: {
+    organizationId: string;
+    name: string;
+    prefix: string;
+    keyHash: string;
+    scopes: string[];
+    expiresAt?: string | null;
+  }): Promise<ApiKeyRecord>;
+  listApiKeys(organizationId: string): Promise<ApiKeyPublic[]>;
+  getApiKeyByPrefix(prefix: string): Promise<ApiKeyRecord | null>;
+  touchApiKey(id: string): Promise<void>;
+  revokeApiKey(id: string, organizationId: string): Promise<void>;
+
+  // API request logs
+  appendApiRequest(input: {
+    organizationId: string;
+    keyId?: string | null;
+    method: string;
+    path: string;
+    status: number;
+    latencyMs: number;
+    requestId?: string;
+  }): Promise<void>;
+  listApiRequests(
+    organizationId: string,
+    opts: { keyId?: string; status?: number; cursor?: string; limit?: number },
+  ): Promise<{ items: ApiRequestRecord[]; nextCursor?: string }>;
+  getApiRequest(id: string, organizationId: string): Promise<ApiRequestRecord | null>;
+  countApiRequests(organizationId: string, sinceIso: string): Promise<number>;
 }
 
 export interface EventInput {
@@ -244,5 +290,64 @@ export interface LeadRecord {
   email: string | null;
   source: string;
   attributes: unknown | null;
+  createdAt: string;
+}
+
+export interface UserRecord {
+  id: string;
+  email: string;
+  passwordHash: string | null;
+  name: string | null;
+  emailVerifiedAt: string | null;
+  createdAt: string;
+}
+
+export interface OrganizationRecord {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: string;
+}
+
+export interface MembershipRecord {
+  id: string;
+  userId: string;
+  organizationId: string;
+  role: string;
+  createdAt: string;
+}
+
+export interface SessionRecord {
+  id: string;
+  userId: string;
+  tokenHash: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface ApiKeyRecord {
+  id: string;
+  organizationId: string;
+  name: string;
+  prefix: string;
+  keyHash: string;
+  scopes: string[];
+  expiresAt: string | null;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+}
+
+export type ApiKeyPublic = Omit<ApiKeyRecord, "keyHash">;
+
+export interface ApiRequestRecord {
+  id: string;
+  organizationId: string;
+  keyId: string | null;
+  method: string;
+  path: string;
+  status: number;
+  latencyMs: number;
+  requestId: string | null;
   createdAt: string;
 }
