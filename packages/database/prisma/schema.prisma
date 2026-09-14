@@ -163,3 +163,17 @@ model AuditLog {
 
   @@index([organizationId, createdAt])
 }
+
+model AiUsage {
+  id             String   @id @default(cuid())
+  organizationId String
+  model          String
+  tokensIn       Int      @default(0)
+  tokensOut      Int      @default(0)
+  costCents      Float    @default(0)
+  requestType    String
+  latencyMs      Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+}

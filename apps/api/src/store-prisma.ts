@@ -141,6 +141,21 @@ export class PrismaStore implements Store {
   async audit(organizationId: string, userId: string | null, action: string, target?: string): Promise<void> {
     await getPrisma().auditLog.create({ data: { organizationId, userId, action, target } });
   }
+
+  async recordAiUsage(
+    organizationId: string,
+    usage: { model: string; tokensIn: number; tokensOut: number; costCents: number; requestType: string; latencyMs: number },
+  ): Promise<void> {
+    await getPrisma().aiUsage.create({ data: { organizationId, ...usage } });
+  }
+
+  async sumAiUsageCostSince(organizationId: string, sinceIso: string): Promise<number> {
+    const agg = await getPrisma().aiUsage.aggregate({
+      _sum: { costCents: true },
+      where: { organizationId, createdAt: { gte: new Date(sinceIso) } },
+    });
+    return agg._sum.costCents ?? 0;
+  }
 }
 
 let cached: Store | null = null;

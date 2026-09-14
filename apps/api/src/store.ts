@@ -84,4 +84,11 @@ export interface Store {
 
   // Audit
   audit(organizationId: string, userId: string | null, action: string, target?: string): Promise<void>;
+
+  // AI usage (cost control)
+  recordAiUsage(
+    organizationId: string,
+    usage: { model: string; tokensIn: number; tokensOut: number; costCents: number; requestType: string; latencyMs: number },
+  ): Promise<void>;
+  sumAiUsageCostSince(organizationId: string, sinceIso: string): Promise<number>;
 }

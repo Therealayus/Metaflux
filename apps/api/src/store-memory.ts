@@ -114,4 +114,19 @@ export class MemoryStore implements Store {
   async audit(organizationId: string, userId: string | null, action: string, target?: string): Promise<void> {
     this.auditLog.push({ organizationId, userId, action, target });
   }
+
+  aiUsage: Array<{ organizationId: string; costCents: number; createdAt: string }> = [];
+
+  async recordAiUsage(
+    organizationId: string,
+    usage: { model: string; tokensIn: number; tokensOut: number; costCents: number; requestType: string; latencyMs: number },
+  ): Promise<void> {
+    this.aiUsage.push({ organizationId, costCents: usage.costCents, createdAt: new Date().toISOString() });
+  }
+
+  async sumAiUsageCostSince(organizationId: string, sinceIso: string): Promise<number> {
+    return this.aiUsage
+      .filter((r) => r.organizationId === organizationId && r.createdAt >= sinceIso)
+      .reduce((sum, r) => sum + r.costCents, 0);
+  }
 }

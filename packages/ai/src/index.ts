@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { CapabilityRegistry, DEFAULT_CAPABILITIES } from "@metaflux/meta";
 
+export * from "./providers.js";
+export * from "./budget.js";
+export * from "./diagnose.js";
+
 /** Structured plan the LLM must produce. Validation engine enforces this schema. */
 export const planStepSchema = z.object({
   provider: z.string(),
@@ -26,6 +30,8 @@ export interface AIProvider {
   readonly name: string;
   generatePlan(prompt: string): Promise<unknown>;
   diagnoseError(input: { headline: string; detail: string }): Promise<string>;
+  explainPermission(input: { permission: string; product: string; why: string }): Promise<string>;
+  summarizeLogs(input: { lines: string[] }): Promise<string>;
 }
 
 /**
@@ -64,6 +70,15 @@ export class RuleBasedPlanner implements AIProvider {
 
   async diagnoseError(input: { headline: string; detail: string }): Promise<string> {
     return `Probable cause: ${input.headline}. Evidence: ${input.detail}. Recommended fix: check connection health and reconnect if the token or permission is missing.`;
+  }
+
+  async explainPermission(input: { permission: string; product: string; why: string }): Promise<string> {
+    return `${input.permission} (${input.product}): ${input.why}`;
+  }
+
+  async summarizeLogs(input: { lines: string[] }): Promise<string> {
+    const errors = input.lines.filter((l) => /error|fail|exception/i.test(l)).length;
+    return `${input.lines.length} log lines reviewed, ${errors} indicating errors. Latest: ${input.lines.at(-1) ?? "none"}.`;
   }
 }
 
