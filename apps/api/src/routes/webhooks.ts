@@ -1,14 +1,19 @@
+import { getStore } from "@metaflux/database";
 import { normalizeWebhookEvent, verifyWebhookSignature } from "@metaflux/meta";
-import { newJob } from "@metaflux/queues";
+import { getQueueDriver, newJob } from "@metaflux/queues";
 import type { FastifyInstance } from "fastify";
+import { persistPayload, payloadStoreFromEnv } from "../payloads.js";
 import { requestId } from "../tenant.js";
 
 /**
- * Webhook gateway: verify -> normalize -> enqueue. Never does long work inline.
- * Queue persistence lands in Phase 3; foundation returns the durable job envelope
- * so the contract is fixed now.
+ * Webhook gateway: verify -> normalize -> resolve tenant -> persist (dedup) -> enqueue.
+ * Responds 202 fast; all long work happens in the worker. Meta requires 2xx,
+ * so unmapped senders are acknowledged (and logged) rather than failed.
  */
 export async function webhookRoutes(app: FastifyInstance) {
+  const store = await getStore();
+  const payloads = payloadStoreFromEnv();
+
   app.get("/api/v1/webhooks/meta", async (request, reply) => {
     const q = request.query as Record<string, string | undefined>;
     const verifyToken = process.env.META_WEBHOOK_VERIFY_TOKEN ?? "change-me-webhook-verify-token";
@@ -32,7 +37,43 @@ export async function webhookRoutes(app: FastifyInstance) {
     const body = (request.body ?? {}) as Record<string, unknown>;
     const product = typeof body.object === "string" ? body.object : "meta";
     const normalized = normalizeWebhookEvent(product, body);
-    const job = newJob("webhook.process", normalized, normalized.eventId);
+
+    // Store outage → 5xx so Meta redelivers (at-least-once). Unmapped senders →
+    // 2xx because retrying won't help and Meta would eventually disable delivery.
+    let routed;
+    try {
+      routed = normalized.objectId ? await store.findConnectionByAssetMetaId(normalized.objectId) : null;
+    } catch (err) {
+      request.log.error({ requestId: reqId, err, msg: "event routing store unavailable" });
+      return reply.status(503).send({ code: "store_unavailable", message: "Temporary failure — Meta will retry delivery", requestId: reqId });
+    }
+    if (!routed) {
+      request.log.warn({ requestId: reqId, eventId: normalized.eventId, objectId: normalized.objectId, msg: "unmapped webhook sender" });
+      return reply.status(202).send({ data: { accepted: true, mapped: false, eventId: normalized.eventId }, requestId: reqId });
+    }
+
+    const stored = await persistPayload(payloads, routed.organizationId, normalized.eventId, body);
+    const { record, created } = await store.createEvent({
+      organizationId: routed.organizationId,
+      workspaceId: routed.workspaceId,
+      provider: "meta",
+      product: normalized.product,
+      eventType: normalized.eventType,
+      eventId: normalized.eventId,
+      payloadRef: stored.ref ?? null,
+      payload: stored.inline,
+    });
+    if (!created) {
+      return reply.status(202).send({ data: { accepted: true, duplicate: true, eventId: normalized.eventId }, requestId: reqId });
+    }
+
+    const job = newJob(
+      "webhook.process",
+      { eventDbId: record.id, eventId: normalized.eventId, organizationId: routed.organizationId, workspaceId: routed.workspaceId },
+      normalized.eventId,
+    );
+    await getQueueDriver().enqueue(job);
+    await store.updateConnection(routed.connection.id, routed.organizationId, { lastEventAt: normalized.receivedAt });
     request.log.info({ requestId: reqId, eventId: normalized.eventId, jobId: job.id });
     return reply.status(202).send({ data: { accepted: true, eventId: normalized.eventId, jobId: job.id }, requestId: reqId });
   });

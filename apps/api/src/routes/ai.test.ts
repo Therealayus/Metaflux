@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { __resetStoreForTests } from "../store-prisma.js";
+import { __resetStoreForTests } from "@metaflux/database";
 import { buildServer } from "../server.js";
 
 const HEADERS = { "x-user-id": "u1", "x-org-id": "org_ai" };

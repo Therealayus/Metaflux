@@ -1,4 +1,16 @@
-import type { AssetInput, AssetRecord, ConnectionRecord, ConnectionUpsert, Store, WorkspaceRecord } from "./store.js";
+import type {
+  AssetInput,
+  AssetRecord,
+  ConnectionRecord,
+  ConnectionUpsert,
+  EventInput,
+  EventList,
+  EventPatch,
+  EventRecord,
+  Store,
+  WorkspaceRecord,
+} from "./store.js";
+import { decodeEventCursor, encodeEventCursor } from "./store.js";
 
 function cuid(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
@@ -128,5 +140,104 @@ export class MemoryStore implements Store {
     return this.aiUsage
       .filter((r) => r.organizationId === organizationId && r.createdAt >= sinceIso)
       .reduce((sum, r) => sum + r.costCents, 0);
+  }
+
+  events = new Map<string, EventRecord>();
+  eventsByEventId = new Map<string, string>();
+
+  async createEvent(input: EventInput): Promise<{ record: EventRecord; created: boolean }> {
+    const existingId = this.eventsByEventId.get(`${input.organizationId}:${input.eventId}`);
+    if (existingId) {
+      const existing = this.events.get(existingId);
+      if (existing) return { record: existing, created: false };
+    }
+    const rec: EventRecord = {
+      id: cuid("evt"),
+      organizationId: input.organizationId,
+      workspaceId: input.workspaceId ?? null,
+      provider: input.provider,
+      product: input.product,
+      eventType: input.eventType,
+      eventId: input.eventId,
+      status: "received",
+      attemptCount: 0,
+      payloadRef: input.payloadRef ?? null,
+      payload: input.payload ?? null,
+      error: null,
+      receivedAt: new Date().toISOString(),
+      processedAt: null,
+    };
+    this.events.set(rec.id, rec);
+    this.eventsByEventId.set(`${input.organizationId}:${input.eventId}`, rec.id);
+    return { record: rec, created: true };
+  }
+
+  async getEvent(id: string, organizationId: string): Promise<EventRecord | null> {
+    const e = this.events.get(id);
+    return e && e.organizationId === organizationId ? e : null;
+  }
+
+  async listEvents(
+    organizationId: string,
+    opts: { cursor?: string; limit?: number; product?: string; status?: string; workspaceId?: string },
+  ): Promise<EventList> {
+    const limit = Math.min(Math.max(opts.limit ?? 25, 1), 100);
+    let items = [...this.events.values()]
+      .filter(
+        (e) =>
+          e.organizationId === organizationId &&
+          (!opts.product || e.product === opts.product) &&
+          (!opts.status || e.status === opts.status) &&
+          (!opts.workspaceId || e.workspaceId === opts.workspaceId),
+      )
+      .sort((a, b) => (b.receivedAt.localeCompare(a.receivedAt) || b.id.localeCompare(a.id)));
+    if (opts.cursor) {
+      const { receivedAt, id } = decodeEventCursor(opts.cursor);
+      items = items.filter((e) => e.receivedAt < receivedAt || (e.receivedAt === receivedAt && e.id < id));
+    }
+    const page = items.slice(0, limit);
+    const last = page[page.length - 1];
+    return {
+      items: page.map(({ payload: _p, ...rest }) => ({ ...rest, payload: null })),
+      nextCursor: items.length > limit && last ? encodeEventCursor(last.receivedAt, last.id) : undefined,
+    };
+  }
+
+  async updateEvent(id: string, organizationId: string, patch: EventPatch): Promise<EventRecord> {
+    const e = await this.getEvent(id, organizationId);
+    if (!e) throw Object.assign(new Error("Event not found"), { status: 404 });
+    const updated: EventRecord = {
+      ...e,
+      ...(patch.status ? { status: patch.status } : {}),
+      ...(patch.attemptCount !== undefined ? { attemptCount: patch.attemptCount } : {}),
+      ...(patch.processedAt !== undefined ? { processedAt: patch.processedAt } : {}),
+      ...(patch.error !== undefined ? { error: patch.error } : {}),
+    };
+    this.events.set(id, updated);
+    return updated;
+  }
+
+  async deleteEventsBefore(beforeIso: string): Promise<number> {
+    let n = 0;
+    for (const [id, e] of this.events) {
+      if (e.receivedAt <= beforeIso) {
+        this.events.delete(id);
+        this.eventsByEventId.delete(`${e.organizationId}:${e.eventId}`);
+        n += 1;
+      }
+    }
+    return n;
+  }
+
+  async findConnectionByAssetMetaId(metaId: string): Promise<{
+    connection: ConnectionRecord;
+    organizationId: string;
+    workspaceId: string;
+  } | null> {
+    const asset = [...this.assets.values()].find((a) => a.metaId === metaId);
+    if (!asset) return null;
+    const connection = this.connections.get(asset.connectionId);
+    if (!connection) return null;
+    return { connection, organizationId: connection.organizationId, workspaceId: connection.workspaceId };
   }
 }

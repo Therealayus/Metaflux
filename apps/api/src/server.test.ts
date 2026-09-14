@@ -1,5 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { __resetQueueDriverForTests } from "@metaflux/queues";
+import { __resetStoreForTests } from "@metaflux/database";
 import { buildServer } from "./server.js";
+
+beforeEach(() => {
+  process.env.STORE_DRIVER = "memory";
+  process.env.QUEUE_DRIVER = "memory";
+  __resetStoreForTests();
+  __resetQueueDriverForTests();
+});
 
 describe("api foundation", () => {
   it("exposes versioned health endpoint", async () => {

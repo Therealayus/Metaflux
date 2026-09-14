@@ -6,6 +6,7 @@ import Fastify from "fastify";
 import { aiRoutes } from "./routes/ai.js";
 import { capabilityRoutes } from "./routes/capabilities.js";
 import { connectionRoutes } from "./routes/connections.js";
+import { eventRoutes } from "./routes/events.js";
 import { healthRoutes } from "./routes/health.js";
 import { webhookRoutes } from "./routes/webhooks.js";
 import { workflowRoutes } from "./routes/workflows.js";
@@ -34,6 +35,7 @@ export function buildServer() {
   app.register(capabilityRoutes);
   app.register(aiRoutes);
   app.register(connectionRoutes);
+  app.register(eventRoutes);
   app.register(webhookRoutes);
   app.register(workflowRoutes);
 

@@ -1,15 +1,16 @@
-import { PrismaClient } from "@prisma/client";
-
-let cached: PrismaClient | undefined;
-
-/**
- * Lazy singleton Prisma client with connection pooling via DATABASE_URL.
- * Lazy so importing this module never requires a live database (unit tests,
- * CLI tooling). First query will fail honestly if DATABASE_URL is unset.
- */
-export function getPrisma(): PrismaClient {
-  if (!cached) {
-    cached = new PrismaClient({ log: ["error", "warn"] });
-  }
-  return cached;
-}
+export { getPrisma } from "./prisma.js";
+export type {
+  AssetInput,
+  AssetRecord,
+  ConnectionRecord,
+  ConnectionUpsert,
+  EventInput,
+  EventList,
+  EventPatch,
+  EventRecord,
+  Store,
+  WorkspaceRecord,
+} from "./store.js";
+export { decodeEventCursor, encodeEventCursor } from "./store.js";
+export { MemoryStore } from "./store-memory.js";
+export { PrismaStore, __resetStoreForTests, getStore } from "./store-prisma.js";

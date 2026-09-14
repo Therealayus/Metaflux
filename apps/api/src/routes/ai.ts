@@ -22,8 +22,8 @@ import {
 } from "@metaflux/meta";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { getStore } from "../store-prisma.js";
-import type { Store } from "../store.js";
+import { getStore } from "@metaflux/database";
+import type { Store } from "@metaflux/database";
 import { requestId, requireTenant, sendError } from "../tenant.js";
 
 const planBody = z.object({ prompt: z.string().min(3).max(2000) });

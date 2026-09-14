@@ -7,6 +7,7 @@ export type JobName =
   | "health.check"
   | "analytics.aggregate"
   | "event.retry"
+  | "event.retention"
   | "notification.send";
 
 export interface Job<T = unknown> {
@@ -37,3 +38,4 @@ export function newJob<T>(name: JobName, payload: T, idempotencyKey: string): Jo
     runAt: new Date().toISOString(),
   };
 }
+export * from "./queue.js";

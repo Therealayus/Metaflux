@@ -91,4 +91,73 @@ export interface Store {
     usage: { model: string; tokensIn: number; tokensOut: number; costCents: number; requestType: string; latencyMs: number },
   ): Promise<void>;
   sumAiUsageCostSince(organizationId: string, sinceIso: string): Promise<number>;
+
+  // Webhook event store
+  createEvent(input: EventInput): Promise<{ record: EventRecord; created: boolean }>;
+  getEvent(id: string, organizationId: string): Promise<EventRecord | null>;
+  listEvents(
+    organizationId: string,
+    opts: { cursor?: string; limit?: number; product?: string; status?: string; workspaceId?: string },
+  ): Promise<EventList>;
+  updateEvent(id: string, organizationId: string, patch: EventPatch): Promise<EventRecord>;
+  /** Retention: delete events received before `beforeIso`. Returns deleted count. */
+  deleteEventsBefore(beforeIso: string): Promise<number>;
+
+  // System-level routing: Meta object id -> owning connection (result re-scoped by caller).
+  findConnectionByAssetMetaId(metaId: string): Promise<{
+    connection: ConnectionRecord;
+    organizationId: string;
+    workspaceId: string;
+  } | null>;
+}
+
+export interface EventInput {
+  organizationId: string;
+  workspaceId?: string | null;
+  provider: string;
+  product: string;
+  eventType: string;
+  eventId: string;
+  payloadRef?: string | null;
+  payload?: unknown;
+}
+
+export interface EventRecord {
+  id: string;
+  organizationId: string;
+  workspaceId: string | null;
+  provider: string;
+  product: string;
+  eventType: string;
+  eventId: string;
+  status: string;
+  attemptCount: number;
+  payloadRef: string | null;
+  payload: unknown | null;
+  error: string | null;
+  receivedAt: string;
+  processedAt: string | null;
+}
+
+export interface EventPatch {
+  status?: string;
+  attemptCount?: number;
+  processedAt?: string | null;
+  error?: string | null;
+}
+
+export interface EventList {
+  items: EventRecord[];
+  nextCursor?: string;
+}
+
+/** Opaque cursor: base64url(receivedAt|id), newest-first. */
+export function encodeEventCursor(receivedAt: string, id: string): string {
+  return Buffer.from(`${receivedAt}|${id}`).toString("base64url");
+}
+
+export function decodeEventCursor(cursor: string): { receivedAt: string; id: string } {
+  const [receivedAt, id] = Buffer.from(cursor, "base64url").toString("utf8").split("|");
+  if (!receivedAt || !id) throw new Error("Invalid cursor");
+  return { receivedAt, id };
 }

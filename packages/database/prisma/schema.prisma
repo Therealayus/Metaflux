@@ -144,6 +144,7 @@ model WebhookEvent {
   status         String   @default("received")
   attemptCount   Int      @default(0)
   payloadRef     String?
+  payload        Json?
   error          String?
   receivedAt     DateTime @default(now())
   processedAt    DateTime?

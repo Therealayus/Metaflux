@@ -18,7 +18,7 @@ import {
 import { decryptToken, encryptToken } from "@metaflux/security";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { getStore } from "../store-prisma.js";
+import { getStore } from "@metaflux/database";
 import { requestId, requireTenant, sendError } from "../tenant.js";
 
 const PRODUCT_SCOPES: Record<string, string[]> = (() => {

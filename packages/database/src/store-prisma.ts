@@ -1,5 +1,17 @@
-import { getPrisma } from "@metaflux/database";
-import type { AssetInput, AssetRecord, ConnectionRecord, ConnectionUpsert, Store, WorkspaceRecord } from "./store.js";
+import { getPrisma } from "./prisma.js";
+import type {
+  AssetInput,
+  AssetRecord,
+  ConnectionRecord,
+  ConnectionUpsert,
+  EventInput,
+  EventList,
+  EventPatch,
+  EventRecord,
+  Store,
+  WorkspaceRecord,
+} from "./store.js";
+import { decodeEventCursor, encodeEventCursor } from "./store.js";
 
 function toConnection(c: {
   id: string; organizationId: string; workspaceId: string; product: string; status: string;
@@ -155,6 +167,135 @@ export class PrismaStore implements Store {
       where: { organizationId, createdAt: { gte: new Date(sinceIso) } },
     });
     return agg._sum.costCents ?? 0;
+  }
+
+  private toEvent(e: {
+    id: string; organizationId: string; workspaceId: string | null; provider: string; product: string;
+    eventType: string; eventId: string; status: string; attemptCount: number; payloadRef: string | null;
+    payload: unknown; error: string | null; receivedAt: Date; processedAt: Date | null;
+  }): EventRecord {
+    return {
+      ...e,
+      payload: (e.payload ?? null) as unknown,
+      receivedAt: e.receivedAt.toISOString(),
+      processedAt: e.processedAt?.toISOString() ?? null,
+    };
+  }
+
+  async createEvent(input: EventInput): Promise<{ record: EventRecord; created: boolean }> {
+    try {
+      const e = await getPrisma().webhookEvent.create({
+        data: {
+          organizationId: input.organizationId,
+          workspaceId: input.workspaceId ?? null,
+          provider: input.provider,
+          product: input.product,
+          eventType: input.eventType,
+          eventId: input.eventId,
+          payloadRef: input.payloadRef ?? null,
+          payload: input.payload === undefined ? undefined : (input.payload as object),
+        },
+      });
+      return { record: this.toEvent({ ...e, payload: e.payload as unknown }), created: true };
+    } catch (err) {
+      if ((err as { code?: string }).code === "P2002") {
+        const existing = await getPrisma().webhookEvent.findUnique({ where: { eventId: input.eventId } });
+        if (existing && existing.organizationId === input.organizationId) {
+          return { record: this.toEvent({ ...existing, payload: existing.payload as unknown }), created: false };
+        }
+        // Same Meta eventId under a different org: extremely unlikely (ids embed object+time),
+        // but never conflate tenants — acknowledge as duplicate without touching the row.
+        const probe = await getPrisma().webhookEvent.findUnique({ where: { eventId: input.eventId } });
+        if (probe) {
+          return {
+            record: this.toEvent({ ...probe, organizationId: input.organizationId, payload: null }),
+            created: false,
+          };
+        }
+      }
+      throw err;
+    }
+  }
+
+  async getEvent(id: string, organizationId: string): Promise<EventRecord | null> {
+    const e = await getPrisma().webhookEvent.findFirst({ where: { id, organizationId } });
+    return e ? this.toEvent({ ...e, payload: e.payload as unknown }) : null;
+  }
+
+  async listEvents(
+    organizationId: string,
+    opts: { cursor?: string; limit?: number; product?: string; status?: string; workspaceId?: string },
+  ): Promise<EventList> {
+    const limit = Math.min(Math.max(opts.limit ?? 25, 1), 100);
+    let cursorFilter = {};
+    if (opts.cursor) {
+      const { receivedAt, id } = decodeEventCursor(opts.cursor);
+      const at = new Date(receivedAt);
+      cursorFilter = { OR: [{ receivedAt: { lt: at } }, { receivedAt: at, id: { lt: id } }] };
+    }
+    const rows = await getPrisma().webhookEvent.findMany({
+      where: {
+        organizationId,
+        ...(opts.product ? { product: opts.product } : {}),
+        ...(opts.status ? { status: opts.status } : {}),
+        ...(opts.workspaceId ? { workspaceId: opts.workspaceId } : {}),
+        ...cursorFilter,
+      },
+      orderBy: [{ receivedAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+      select: {
+        id: true, organizationId: true, workspaceId: true, provider: true, product: true,
+        eventType: true, eventId: true, status: true, attemptCount: true, payloadRef: true,
+        error: true, receivedAt: true, processedAt: true,
+      },
+    });
+    const page = rows.slice(0, limit);
+    const last = page[page.length - 1];
+    return {
+      items: page.map((r) => ({
+        ...r,
+        payload: null,
+        receivedAt: r.receivedAt.toISOString(),
+        processedAt: r.processedAt?.toISOString() ?? null,
+      })),
+      nextCursor: rows.length > limit && last ? encodeEventCursor(last.receivedAt.toISOString(), last.id) : undefined,
+    };
+  }
+
+  async updateEvent(id: string, organizationId: string, patch: EventPatch): Promise<EventRecord> {
+    const existing = await this.getEvent(id, organizationId);
+    if (!existing) throw Object.assign(new Error("Event not found"), { status: 404 });
+    const e = await getPrisma().webhookEvent.update({
+      where: { id },
+      data: {
+        ...(patch.status ? { status: patch.status } : {}),
+        ...(patch.attemptCount !== undefined ? { attemptCount: patch.attemptCount } : {}),
+        ...(patch.processedAt !== undefined ? { processedAt: patch.processedAt ? new Date(patch.processedAt) : null } : {}),
+        ...(patch.error !== undefined ? { error: patch.error } : {}),
+      },
+    });
+    return this.toEvent({ ...e, payload: e.payload as unknown });
+  }
+
+  async deleteEventsBefore(beforeIso: string): Promise<number> {
+    const res = await getPrisma().webhookEvent.deleteMany({ where: { receivedAt: { lte: new Date(beforeIso) } } });
+    return res.count;
+  }
+
+  async findConnectionByAssetMetaId(metaId: string): Promise<{
+    connection: ConnectionRecord;
+    organizationId: string;
+    workspaceId: string;
+  } | null> {
+    const asset = await getPrisma().metaAsset.findFirst({ where: { metaId } });
+    if (!asset) return null;
+    const c = await getPrisma().metaConnection.findUnique({ where: { id: asset.connectionId } });
+    if (!c) return null;
+    return {
+      connection: toConnection(c),
+      organizationId: c.organizationId,
+      workspaceId: c.workspaceId,
+    };
   }
 }
 
