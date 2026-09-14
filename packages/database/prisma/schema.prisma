@@ -178,3 +178,19 @@ model AiUsage {
 
   @@index([organizationId, createdAt])
 }
+
+model Lead {
+  id             String   @id @default(cuid())
+  organizationId String
+  workspaceId    String
+  workflowId     String?
+  name           String?
+  phone          String?
+  email          String?
+  source         String   @default("workflow")
+  attributes     Json?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([workspaceId])
+}

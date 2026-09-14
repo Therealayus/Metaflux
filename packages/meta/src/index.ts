@@ -8,3 +8,4 @@ export * from "./providers.js";
 export * from "./oauth.js";
 export * from "./discovery.js";
 export * from "./health.js";
+export * from "./messaging.js";

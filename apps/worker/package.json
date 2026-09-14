@@ -14,6 +14,8 @@
   },
   "dependencies": {
     "@metaflux/meta": "workspace:*",
+    "@metaflux/ai": "workspace:*",
+    "@metaflux/security": "workspace:*",
     "@metaflux/database": "workspace:*",
     "@metaflux/observability": "workspace:*",
     "@metaflux/queues": "workspace:*",

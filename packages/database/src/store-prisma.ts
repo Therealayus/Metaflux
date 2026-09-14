@@ -8,7 +8,10 @@ import type {
   EventList,
   EventPatch,
   EventRecord,
+  ExecutionRecord,
+  LeadRecord,
   Store,
+  WorkflowRecord,
   WorkspaceRecord,
 } from "./store.js";
 import { decodeEventCursor, encodeEventCursor } from "./store.js";
@@ -295,6 +298,232 @@ export class PrismaStore implements Store {
       connection: toConnection(c),
       organizationId: c.organizationId,
       workspaceId: c.workspaceId,
+    };
+  }
+
+  private toWorkflow(w: {
+    id: string; organizationId: string; workspaceId: string; name: string;
+    definition: unknown; status: string; createdAt: Date; updatedAt: Date;
+  }): WorkflowRecord {
+    return { ...w, createdAt: w.createdAt.toISOString(), updatedAt: w.updatedAt.toISOString() };
+  }
+
+  async createWorkflow(input: { organizationId: string; workspaceId: string; name: string; definition: unknown }): Promise<WorkflowRecord> {
+    const ws = await this.getWorkspace(input.workspaceId, input.organizationId);
+    if (!ws) throw Object.assign(new Error("Workspace not found"), { status: 404 });
+    const w = await getPrisma().workflow.create({
+      data: { organizationId: input.organizationId, workspaceId: input.workspaceId, name: input.name, definition: input.definition as object },
+    });
+    return this.toWorkflow(w);
+  }
+
+  async getWorkflow(id: string, organizationId: string): Promise<WorkflowRecord | null> {
+    const w = await getPrisma().workflow.findFirst({ where: { id, organizationId } });
+    return w ? this.toWorkflow(w) : null;
+  }
+
+  async listWorkflows(
+    organizationId: string,
+    opts: { workspaceId?: string; status?: string; cursor?: string; limit?: number },
+  ): Promise<{ items: WorkflowRecord[]; nextCursor?: string }> {
+    const limit = Math.min(Math.max(opts.limit ?? 25, 1), 100);
+    let cursorFilter = {};
+    if (opts.cursor) {
+      const { receivedAt, id } = decodeEventCursor(opts.cursor);
+      const at = new Date(receivedAt);
+      cursorFilter = { OR: [{ createdAt: { lt: at } }, { createdAt: at, id: { lt: id } }] };
+    }
+    const rows = await getPrisma().workflow.findMany({
+      where: {
+        organizationId,
+        ...(opts.workspaceId ? { workspaceId: opts.workspaceId } : {}),
+        ...(opts.status ? { status: opts.status } : {}),
+        ...cursorFilter,
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+    });
+    const page = rows.slice(0, limit);
+    const last = page[page.length - 1];
+    return {
+      items: page.map((w) => this.toWorkflow(w)),
+      nextCursor: rows.length > limit && last ? encodeEventCursor(last.createdAt.toISOString(), last.id) : undefined,
+    };
+  }
+
+  async updateWorkflow(
+    id: string,
+    organizationId: string,
+    patch: { name?: string; definition?: unknown; status?: string },
+  ): Promise<WorkflowRecord> {
+    const existing = await this.getWorkflow(id, organizationId);
+    if (!existing) throw Object.assign(new Error("Workflow not found"), { status: 404 });
+    const w = await getPrisma().workflow.update({
+      where: { id },
+      data: {
+        ...(patch.name !== undefined ? { name: patch.name } : {}),
+        ...(patch.definition !== undefined ? { definition: patch.definition as object } : {}),
+        ...(patch.status !== undefined ? { status: patch.status } : {}),
+      },
+    });
+    return this.toWorkflow(w);
+  }
+
+  async deleteWorkflow(id: string, organizationId: string): Promise<void> {
+    const existing = await this.getWorkflow(id, organizationId);
+    if (!existing) throw Object.assign(new Error("Workflow not found"), { status: 404 });
+    await getPrisma().workflowExecution.deleteMany({ where: { workflowId: id } });
+    await getPrisma().workflow.delete({ where: { id } });
+  }
+
+  private toExecution(e: {
+    id: string; workflowId: string; status: string; idempotencyKey: string;
+    input: unknown; output: unknown; error: string | null; createdAt: Date;
+  }, organizationId: string): ExecutionRecord {
+    return {
+      ...e,
+      organizationId,
+      input: (e.input ?? null) as unknown,
+      output: (e.output ?? null) as unknown,
+      createdAt: e.createdAt.toISOString(),
+    };
+  }
+
+  private async executionOrg(workflowId: string, organizationId: string): Promise<void> {
+    const wf = await this.getWorkflow(workflowId, organizationId);
+    if (!wf) throw Object.assign(new Error("Workflow not found"), { status: 404 });
+  }
+
+  async createExecution(input: {
+    workflowId: string;
+    organizationId: string;
+    idempotencyKey: string;
+    input?: unknown;
+  }): Promise<{ record: ExecutionRecord; created: boolean }> {
+    await this.executionOrg(input.workflowId, input.organizationId);
+    try {
+      const e = await getPrisma().workflowExecution.create({
+        data: {
+          workflowId: input.workflowId,
+          idempotencyKey: input.idempotencyKey,
+          input: (input.input ?? {}) as object,
+        },
+      });
+      return { record: this.toExecution(e, input.organizationId), created: true };
+    } catch (err) {
+      if ((err as { code?: string }).code === "P2002") {
+        const existing = await getPrisma().workflowExecution.findUnique({ where: { idempotencyKey: input.idempotencyKey } });
+        if (existing) {
+          const wf = await getPrisma().workflow.findUnique({ where: { id: existing.workflowId } });
+          if (wf && wf.organizationId === input.organizationId) {
+            return { record: this.toExecution(existing, input.organizationId), created: false };
+          }
+        }
+      }
+      throw err;
+    }
+  }
+
+  async getExecution(id: string, organizationId: string): Promise<ExecutionRecord | null> {
+    const e = await getPrisma().workflowExecution.findUnique({ where: { id }, include: { workflow: true } });
+    if (!e || e.workflow.organizationId !== organizationId) return null;
+    return this.toExecution(e, organizationId);
+  }
+
+  async listExecutions(
+    workflowId: string,
+    organizationId: string,
+    opts: { cursor?: string; limit?: number },
+  ): Promise<{ items: ExecutionRecord[]; nextCursor?: string }> {
+    await this.executionOrg(workflowId, organizationId);
+    const limit = Math.min(Math.max(opts.limit ?? 25, 1), 100);
+    let cursorFilter = {};
+    if (opts.cursor) {
+      const { receivedAt, id } = decodeEventCursor(opts.cursor);
+      const at = new Date(receivedAt);
+      cursorFilter = { OR: [{ createdAt: { lt: at } }, { createdAt: at, id: { lt: id } }] };
+    }
+    const rows = await getPrisma().workflowExecution.findMany({
+      where: { workflowId, ...cursorFilter },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+    });
+    const page = rows.slice(0, limit);
+    const last = page[page.length - 1];
+    return {
+      items: page.map((e) => this.toExecution(e, organizationId)),
+      nextCursor: rows.length > limit && last ? encodeEventCursor(last.createdAt.toISOString(), last.id) : undefined,
+    };
+  }
+
+  async updateExecution(
+    id: string,
+    organizationId: string,
+    patch: { status?: string; output?: unknown; error?: string | null },
+  ): Promise<ExecutionRecord> {
+    const existing = await this.getExecution(id, organizationId);
+    if (!existing) throw Object.assign(new Error("Execution not found"), { status: 404 });
+    const e = await getPrisma().workflowExecution.update({
+      where: { id },
+      data: {
+        ...(patch.status ? { status: patch.status } : {}),
+        ...(patch.output !== undefined ? { output: patch.output as object } : {}),
+        ...(patch.error !== undefined ? { error: patch.error } : {}),
+      },
+    });
+    return this.toExecution(e, organizationId);
+  }
+
+  async createLead(input: {
+    organizationId: string;
+    workspaceId: string;
+    workflowId?: string;
+    name?: string;
+    phone?: string;
+    email?: string;
+    source?: string;
+    attributes?: unknown;
+  }): Promise<LeadRecord> {
+    const l = await getPrisma().lead.create({
+      data: {
+        organizationId: input.organizationId,
+        workspaceId: input.workspaceId,
+        workflowId: input.workflowId ?? null,
+        name: input.name ?? null,
+        phone: input.phone ?? null,
+        email: input.email ?? null,
+        source: input.source ?? "workflow",
+        attributes: (input.attributes ?? undefined) as object | undefined,
+      },
+    });
+    return { ...l, attributes: (l.attributes ?? null) as unknown, createdAt: l.createdAt.toISOString() };
+  }
+
+  async listLeads(
+    organizationId: string,
+    opts: { workspaceId?: string; cursor?: string; limit?: number },
+  ): Promise<{ items: LeadRecord[]; nextCursor?: string }> {
+    const limit = Math.min(Math.max(opts.limit ?? 25, 1), 100);
+    let cursorFilter = {};
+    if (opts.cursor) {
+      const { receivedAt, id } = decodeEventCursor(opts.cursor);
+      const at = new Date(receivedAt);
+      cursorFilter = { OR: [{ createdAt: { lt: at } }, { createdAt: at, id: { lt: id } }] };
+    }
+    const rows = await getPrisma().lead.findMany({
+      where: {
+        organizationId,
+        ...(opts.workspaceId ? { workspaceId: opts.workspaceId } : {}),
+        ...cursorFilter,
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+    });
+    const page = rows.slice(0, limit);
+    const last = page[page.length - 1];
+    return {
+      items: page.map((l) => ({ ...l, attributes: (l.attributes ?? null) as unknown, createdAt: l.createdAt.toISOString() })),
+      nextCursor: rows.length > limit && last ? encodeEventCursor(last.createdAt.toISOString(), last.id) : undefined,
     };
   }
 }

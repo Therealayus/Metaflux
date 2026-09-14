@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@metaflux/ui": "workspace:*",
+    "@xyflow/react": "^12.11.6",
     "framer-motion": "^11.13.1",
     "lucide-react": "^0.454.0",
     "next": "14.2.18",

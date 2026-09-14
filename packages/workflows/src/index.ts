@@ -51,3 +51,5 @@ export function validateWorkflowDefinition(def: WorkflowDefinition): WorkflowDef
 export function workflowNeedsConfirmation(def: WorkflowDefinition): boolean {
   return def.nodes.some((n) => n.type === "send_message" || n.type === "webhook" || n.type === "http_request");
 }
+
+export * from "./engine.js";

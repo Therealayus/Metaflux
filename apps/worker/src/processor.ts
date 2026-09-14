@@ -142,7 +142,7 @@ export interface RunLoopOpts {
 export async function runLoop(opts: RunLoopOpts = {}): Promise<void> {
   const { getQueueDriver } = await import("@metaflux/queues");
   const driver = opts.driver ?? getQueueDriver();
-  registerCoreHandlersIfEmpty();
+  ensureLoopHandlers();
   const log = childLogger({ operation: "worker-loop" });
   log.info({ group: opts.group ?? "metaflux", msg: "worker loop started" });
   let stopped = false;
@@ -163,8 +163,16 @@ export async function runLoop(opts: RunLoopOpts = {}): Promise<void> {
   log.info({ msg: "worker loop stopped" });
 }
 
-function registerCoreHandlersIfEmpty(): void {
-  if (handlers.size === 0) registerCoreHandlers();
+/** Register the durable-ingest handlers. Automation (Phase 4) overrides webhook.process afterwards. */
+export function registerCoreHandlersPublic(): void {
+  registerCoreHandlers();
+}
+
+/** The loop ensures infra handlers without clobbering a webhook.process override. */
+export function ensureLoopHandlers(): void {
+  const override = handlers.get("webhook.process");
+  registerCoreHandlers();
+  if (override) handlers.set("webhook.process", override);
 }
 
 // Legacy single-job entry kept for backward-compatible tests.

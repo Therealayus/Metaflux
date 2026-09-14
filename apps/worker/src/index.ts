@@ -1,5 +1,9 @@
 import { logger } from "@metaflux/observability";
-import { runLoop } from "./processor.js";
+import { registerAutomationHandlers } from "./automation.js";
+import { registerCoreHandlersPublic, runLoop } from "./processor.js";
+
+registerCoreHandlersPublic();
+registerAutomationHandlers();
 
 logger.info({
   msg: "metaflux worker starting",

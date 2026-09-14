@@ -109,6 +109,55 @@ export interface Store {
     organizationId: string;
     workspaceId: string;
   } | null>;
+
+  // Workflows
+  createWorkflow(input: { organizationId: string; workspaceId: string; name: string; definition: unknown }): Promise<WorkflowRecord>;
+  getWorkflow(id: string, organizationId: string): Promise<WorkflowRecord | null>;
+  listWorkflows(
+    organizationId: string,
+    opts: { workspaceId?: string; status?: string; cursor?: string; limit?: number },
+  ): Promise<{ items: WorkflowRecord[]; nextCursor?: string }>;
+  updateWorkflow(
+    id: string,
+    organizationId: string,
+    patch: { name?: string; definition?: unknown; status?: string },
+  ): Promise<WorkflowRecord>;
+  deleteWorkflow(id: string, organizationId: string): Promise<void>;
+
+  // Executions (idempotent)
+  createExecution(input: {
+    workflowId: string;
+    organizationId: string;
+    idempotencyKey: string;
+    input?: unknown;
+  }): Promise<{ record: ExecutionRecord; created: boolean }>;
+  getExecution(id: string, organizationId: string): Promise<ExecutionRecord | null>;
+  listExecutions(
+    workflowId: string,
+    organizationId: string,
+    opts: { cursor?: string; limit?: number },
+  ): Promise<{ items: ExecutionRecord[]; nextCursor?: string }>;
+  updateExecution(
+    id: string,
+    organizationId: string,
+    patch: { status?: string; output?: unknown; error?: string | null },
+  ): Promise<ExecutionRecord>;
+
+  // Leads
+  createLead(input: {
+    organizationId: string;
+    workspaceId: string;
+    workflowId?: string;
+    name?: string;
+    phone?: string;
+    email?: string;
+    source?: string;
+    attributes?: unknown;
+  }): Promise<LeadRecord>;
+  listLeads(
+    organizationId: string,
+    opts: { workspaceId?: string; cursor?: string; limit?: number },
+  ): Promise<{ items: LeadRecord[]; nextCursor?: string }>;
 }
 
 export interface EventInput {
@@ -160,4 +209,40 @@ export function decodeEventCursor(cursor: string): { receivedAt: string; id: str
   const [receivedAt, id] = Buffer.from(cursor, "base64url").toString("utf8").split("|");
   if (!receivedAt || !id) throw new Error("Invalid cursor");
   return { receivedAt, id };
+}
+
+export interface WorkflowRecord {
+  id: string;
+  organizationId: string;
+  workspaceId: string;
+  name: string;
+  definition: unknown;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExecutionRecord {
+  id: string;
+  workflowId: string;
+  organizationId: string;
+  status: string;
+  idempotencyKey: string;
+  input: unknown | null;
+  output: unknown | null;
+  error: string | null;
+  createdAt: string;
+}
+
+export interface LeadRecord {
+  id: string;
+  organizationId: string;
+  workspaceId: string;
+  workflowId: string | null;
+  name: string | null;
+  phone: string | null;
+  email: string | null;
+  source: string;
+  attributes: unknown | null;
+  createdAt: string;
 }

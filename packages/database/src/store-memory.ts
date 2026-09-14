@@ -7,7 +7,10 @@ import type {
   EventList,
   EventPatch,
   EventRecord,
+  ExecutionRecord,
+  LeadRecord,
   Store,
+  WorkflowRecord,
   WorkspaceRecord,
 } from "./store.js";
 import { decodeEventCursor, encodeEventCursor } from "./store.js";
@@ -239,5 +242,200 @@ export class MemoryStore implements Store {
     const connection = this.connections.get(asset.connectionId);
     if (!connection) return null;
     return { connection, organizationId: connection.organizationId, workspaceId: connection.workspaceId };
+  }
+
+  workflows = new Map<string, WorkflowRecord>();
+  executions = new Map<string, ExecutionRecord>();
+  executionsByKey = new Map<string, string>();
+  leads = new Map<string, LeadRecord>();
+
+  async createWorkflow(input: { organizationId: string; workspaceId: string; name: string; definition: unknown }): Promise<WorkflowRecord> {
+    const ws = await this.getWorkspace(input.workspaceId, input.organizationId);
+    if (!ws) throw Object.assign(new Error("Workspace not found"), { status: 404 });
+    const now = new Date().toISOString();
+    const rec: WorkflowRecord = { id: cuid("wf"), ...input, status: "draft", createdAt: now, updatedAt: now };
+    this.workflows.set(rec.id, rec);
+    return rec;
+  }
+
+  async getWorkflow(id: string, organizationId: string): Promise<WorkflowRecord | null> {
+    const w = this.workflows.get(id);
+    return w && w.organizationId === organizationId ? w : null;
+  }
+
+  async listWorkflows(
+    organizationId: string,
+    opts: { workspaceId?: string; status?: string; cursor?: string; limit?: number },
+  ): Promise<{ items: WorkflowRecord[]; nextCursor?: string }> {
+    const limit = Math.min(Math.max(opts.limit ?? 25, 1), 100);
+    let items = [...this.workflows.values()]
+      .filter(
+        (w) =>
+          w.organizationId === organizationId &&
+          (!opts.workspaceId || w.workspaceId === opts.workspaceId) &&
+          (!opts.status || w.status === opts.status),
+      )
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id));
+    if (opts.cursor) {
+      const { receivedAt, id } = decodeEventCursor(opts.cursor);
+      items = items.filter((w) => w.createdAt < receivedAt || (w.createdAt === receivedAt && w.id < id));
+    }
+    const page = items.slice(0, limit);
+    const last = page[page.length - 1];
+    return {
+      items: page,
+      nextCursor: items.length > limit && last ? encodeEventCursor(last.createdAt, last.id) : undefined,
+    };
+  }
+
+  async updateWorkflow(
+    id: string,
+    organizationId: string,
+    patch: { name?: string; definition?: unknown; status?: string },
+  ): Promise<WorkflowRecord> {
+    const w = await this.getWorkflow(id, organizationId);
+    if (!w) throw Object.assign(new Error("Workflow not found"), { status: 404 });
+    const updated: WorkflowRecord = {
+      ...w,
+      ...(patch.name !== undefined ? { name: patch.name } : {}),
+      ...(patch.definition !== undefined ? { definition: patch.definition } : {}),
+      ...(patch.status !== undefined ? { status: patch.status } : {}),
+      updatedAt: new Date().toISOString(),
+    };
+    this.workflows.set(id, updated);
+    return updated;
+  }
+
+  async deleteWorkflow(id: string, organizationId: string): Promise<void> {
+    const w = await this.getWorkflow(id, organizationId);
+    if (!w) throw Object.assign(new Error("Workflow not found"), { status: 404 });
+    for (const [eid, e] of this.executions) {
+      if (e.workflowId === id) {
+        this.executions.delete(eid);
+        this.executionsByKey.delete(`${organizationId}:${e.idempotencyKey}`);
+      }
+    }
+    this.workflows.delete(id);
+  }
+
+  async createExecution(input: {
+    workflowId: string;
+    organizationId: string;
+    idempotencyKey: string;
+    input?: unknown;
+  }): Promise<{ record: ExecutionRecord; created: boolean }> {
+    const wf = await this.getWorkflow(input.workflowId, input.organizationId);
+    if (!wf) throw Object.assign(new Error("Workflow not found"), { status: 404 });
+    const key = `${input.organizationId}:${input.idempotencyKey}`;
+    const existingId = this.executionsByKey.get(key);
+    if (existingId) {
+      const existing = this.executions.get(existingId);
+      if (existing) return { record: existing, created: false };
+    }
+    const rec: ExecutionRecord = {
+      id: cuid("exe"),
+      workflowId: input.workflowId,
+      organizationId: input.organizationId,
+      status: "queued",
+      idempotencyKey: input.idempotencyKey,
+      input: input.input ?? null,
+      output: null,
+      error: null,
+      createdAt: new Date().toISOString(),
+    };
+    this.executions.set(rec.id, rec);
+    this.executionsByKey.set(key, rec.id);
+    return { record: rec, created: true };
+  }
+
+  async getExecution(id: string, organizationId: string): Promise<ExecutionRecord | null> {
+    const e = this.executions.get(id);
+    return e && e.organizationId === organizationId ? e : null;
+  }
+
+  async listExecutions(
+    workflowId: string,
+    organizationId: string,
+    opts: { cursor?: string; limit?: number },
+  ): Promise<{ items: ExecutionRecord[]; nextCursor?: string }> {
+    const wf = await this.getWorkflow(workflowId, organizationId);
+    if (!wf) throw Object.assign(new Error("Workflow not found"), { status: 404 });
+    const limit = Math.min(Math.max(opts.limit ?? 25, 1), 100);
+    let items = [...this.executions.values()]
+      .filter((e) => e.workflowId === workflowId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id));
+    if (opts.cursor) {
+      const { receivedAt, id } = decodeEventCursor(opts.cursor);
+      items = items.filter((e) => e.createdAt < receivedAt || (e.createdAt === receivedAt && e.id < id));
+    }
+    const page = items.slice(0, limit);
+    const last = page[page.length - 1];
+    return {
+      items: page,
+      nextCursor: items.length > limit && last ? encodeEventCursor(last.createdAt, last.id) : undefined,
+    };
+  }
+
+  async updateExecution(
+    id: string,
+    organizationId: string,
+    patch: { status?: string; output?: unknown; error?: string | null },
+  ): Promise<ExecutionRecord> {
+    const e = await this.getExecution(id, organizationId);
+    if (!e) throw Object.assign(new Error("Execution not found"), { status: 404 });
+    const updated: ExecutionRecord = {
+      ...e,
+      ...(patch.status ? { status: patch.status } : {}),
+      ...(patch.output !== undefined ? { output: patch.output } : {}),
+      ...(patch.error !== undefined ? { error: patch.error } : {}),
+    };
+    this.executions.set(id, updated);
+    return updated;
+  }
+
+  async createLead(input: {
+    organizationId: string;
+    workspaceId: string;
+    workflowId?: string;
+    name?: string;
+    phone?: string;
+    email?: string;
+    source?: string;
+    attributes?: unknown;
+  }): Promise<LeadRecord> {
+    const rec: LeadRecord = {
+      id: cuid("lead"),
+      organizationId: input.organizationId,
+      workspaceId: input.workspaceId,
+      workflowId: input.workflowId ?? null,
+      name: input.name ?? null,
+      phone: input.phone ?? null,
+      email: input.email ?? null,
+      source: input.source ?? "workflow",
+      attributes: input.attributes ?? null,
+      createdAt: new Date().toISOString(),
+    };
+    this.leads.set(rec.id, rec);
+    return rec;
+  }
+
+  async listLeads(
+    organizationId: string,
+    opts: { workspaceId?: string; cursor?: string; limit?: number },
+  ): Promise<{ items: LeadRecord[]; nextCursor?: string }> {
+    const limit = Math.min(Math.max(opts.limit ?? 25, 1), 100);
+    let items = [...this.leads.values()]
+      .filter((l) => l.organizationId === organizationId && (!opts.workspaceId || l.workspaceId === opts.workspaceId))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id));
+    if (opts.cursor) {
+      const { receivedAt, id } = decodeEventCursor(opts.cursor);
+      items = items.filter((l) => l.createdAt < receivedAt || (l.createdAt === receivedAt && l.id < id));
+    }
+    const page = items.slice(0, limit);
+    const last = page[page.length - 1];
+    return {
+      items: page,
+      nextCursor: items.length > limit && last ? encodeEventCursor(last.createdAt, last.id) : undefined,
+    };
   }
 }

@@ -3,6 +3,7 @@ import { MetaApiClient } from "./client.js";
 import { checkConnectionHealth } from "./health.js";
 import { discoverFacebookPages, discoverWhatsAppAssets, subscribePageWebhooks } from "./discovery.js";
 import { debugToken, exchangeCodeForToken, exchangeForLongLivedToken, signState, verifyState } from "./oauth.js";
+import { extractSenderId } from "./webhooks.js";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -144,5 +145,14 @@ describe("health", () => {
     expect(report.token).toBe("healthy");
     expect(report.grantedScopes).toEqual([]);
     expect(report.missingScopes).toEqual(["a"]);
+  });
+});
+
+describe("sender extraction", () => {
+  it("reads camelCase, snake_case and nested sender ids", () => {
+    expect(extractSenderId({ senderId: "a" })).toBe("a");
+    expect(extractSenderId({ entry: [{ changes: [{ value: { sender_id: "b" } }] }] })).toBe("b");
+    expect(extractSenderId({ entry: [{ messaging: [{ sender: { id: "c" } }] }] })).toBe("c");
+    expect(extractSenderId({ nope: true })).toBeUndefined();
   });
 });

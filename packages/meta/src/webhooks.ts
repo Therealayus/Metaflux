@@ -32,3 +32,30 @@ export function normalizeWebhookEvent(product: string, payload: Record<string, u
     objectId: id,
   };
 }
+
+/** Best-effort sender extraction (commenter / message sender id) for reply addressing. */
+export function extractSenderId(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== "object") return undefined;
+  const root = payload as Record<string, unknown>;
+  const candidates: unknown[] = [
+    root.senderId,
+    root.sender_id,
+    (root.sender as Record<string, unknown> | undefined)?.id,
+    (root.from as Record<string, unknown> | undefined)?.id,
+  ];
+  const entry = (root.entry as Array<Record<string, unknown>> | undefined)?.[0];
+  const changes = (entry?.changes as Array<Record<string, unknown>> | undefined)?.[0];
+  const value = changes?.value as Record<string, unknown> | undefined;
+  candidates.push(
+    value?.senderId,
+    value?.sender_id,
+    (value?.sender as Record<string, unknown> | undefined)?.id,
+    (value?.from as Record<string, unknown> | undefined)?.id,
+  );
+  const messaging = (entry?.messaging as Array<Record<string, unknown>> | undefined)?.[0];
+  candidates.push((messaging?.sender as Record<string, unknown> | undefined)?.id);
+  for (const c of candidates) {
+    if (typeof c === "string" && c.length > 0) return c;
+  }
+  return undefined;
+}

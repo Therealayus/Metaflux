@@ -8,7 +8,10 @@ export type {
   EventList,
   EventPatch,
   EventRecord,
+  ExecutionRecord,
+  LeadRecord,
   Store,
+  WorkflowRecord,
   WorkspaceRecord,
 } from "./store.js";
 export { decodeEventCursor, encodeEventCursor } from "./store.js";
