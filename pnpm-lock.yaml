@@ -38,6 +38,9 @@ importers:
       '@metaflux/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@metaflux/billing':
+        specifier: workspace:*
+        version: link:../../packages/billing
       '@metaflux/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -151,6 +154,9 @@ importers:
       '@metaflux/ai':
         specifier: workspace:*
         version: link:../../packages/ai
+      '@metaflux/billing':
+        specifier: workspace:*
+        version: link:../../packages/billing
       '@metaflux/database':
         specifier: workspace:*
         version: link:../../packages/database
@@ -213,6 +219,25 @@ importers:
       '@metaflux/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.1.3
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@20.19.43)
+
+  packages/billing:
+    dependencies:
+      '@metaflux/ai':
+        specifier: workspace:*
+        version: link:../ai
+      '@metaflux/database':
+        specifier: workspace:*
+        version: link:../database
     devDependencies:
       rimraf:
         specifier: ^6.0.1

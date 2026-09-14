@@ -15,6 +15,7 @@
   "dependencies": {
     "@metaflux/meta": "workspace:*",
     "@metaflux/ai": "workspace:*",
+    "@metaflux/billing": "workspace:*",
     "@metaflux/security": "workspace:*",
     "@metaflux/database": "workspace:*",
     "@metaflux/observability": "workspace:*",

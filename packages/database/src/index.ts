@@ -16,6 +16,7 @@ export type {
   MembershipRecord,
   OrganizationRecord,
   SessionRecord,
+  SubscriptionRecord,
   Store,
   UserRecord,
   WorkflowRecord,

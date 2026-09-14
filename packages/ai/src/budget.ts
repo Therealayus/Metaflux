@@ -41,9 +41,13 @@ export function monthlyBudgetCents(): number {
 }
 
 /** Throws when the org already spent its monthly AI budget. Call BEFORE the LLM request. */
-export async function assertBudgetAvailable(store: BudgetStore, organizationId: string): Promise<void> {
+export async function assertBudgetAvailable(
+  store: BudgetStore,
+  organizationId: string,
+  capCents = monthlyBudgetCents(),
+): Promise<void> {
   const spent = await store.sumCostCentsSince(organizationId, monthStartIso());
-  if (spent >= monthlyBudgetCents()) {
+  if (spent >= capCents) {
     throw Object.assign(new Error("Monthly AI budget exhausted — raise the limit or wait for next cycle"), {
       status: 429,
       code: "ai_budget_exhausted",

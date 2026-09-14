@@ -204,6 +204,29 @@ export interface Store {
   ): Promise<{ items: ApiRequestRecord[]; nextCursor?: string }>;
   getApiRequest(id: string, organizationId: string): Promise<ApiRequestRecord | null>;
   countApiRequests(organizationId: string, sinceIso: string): Promise<number>;
+
+  // Billing
+  getSubscription(organizationId: string): Promise<SubscriptionRecord | null>;
+  upsertSubscription(
+    organizationId: string,
+    patch: Partial<Pick<SubscriptionRecord, "plan" | "status" | "stripeCustomerId" | "stripeSubscriptionId" | "currentPeriodEnd">>,
+  ): Promise<SubscriptionRecord>;
+  countWorkflows(organizationId: string): Promise<number>;
+  countExecutionsSince(organizationId: string, sinceIso: string): Promise<number>;
+  /** System-level Stripe routing lookup (webhook context, result re-scoped by caller). */
+  findSubscriptionByStripeId(input: { customerId?: string; subscriptionId?: string }): Promise<SubscriptionRecord | null>;
+}
+
+export interface SubscriptionRecord {
+  id: string;
+  organizationId: string;
+  plan: string;
+  status: string;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  currentPeriodEnd: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface EventInput {

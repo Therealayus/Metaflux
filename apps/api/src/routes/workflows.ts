@@ -1,5 +1,6 @@
 import { getStore } from "@metaflux/database";
 import { requireScope } from "@metaflux/auth";
+import { assertCanCreateWorkflow } from "@metaflux/billing";
 import { newJob, getQueueDriver } from "@metaflux/queues";
 import { transitionWorkflowStatus, validateWorkflowDefinition, workflowNeedsConfirmation } from "@metaflux/workflows";
 import type { FastifyInstance } from "fastify";
@@ -48,6 +49,7 @@ export async function workflowRoutes(app: FastifyInstance) {
     const workspaceId = parsed.data.workspaceId ?? ctx.workspaceId;
     if (!workspaceId) return sendError(reply, 400, "workspace_required", "workspaceId is required", reqId);
     try {
+      await assertCanCreateWorkflow(store, ctx.organizationId);
       const def = validateWorkflowDefinition(parsed.data.definition as never);
       if (workflowNeedsConfirmation(def) && request.headers["x-confirm"] !== "true") {
         return sendError(reply, 428, "confirmation_required", "This workflow sends messages or calls webhooks. Retry with x-confirm: true.", reqId);
@@ -57,7 +59,8 @@ export async function workflowRoutes(app: FastifyInstance) {
       return reply.status(201).send({ data: wf, requestId: reqId });
     } catch (err) {
       const status = (err as { status?: number }).status ?? 422;
-      return sendError(reply, status, "invalid_workflow", err instanceof Error ? err.message : "Invalid workflow", reqId);
+      const code = (err as { code?: string }).code ?? "invalid_workflow";
+      return sendError(reply, status, code, err instanceof Error ? err.message : "Invalid workflow", reqId);
     }
   });
 

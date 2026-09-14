@@ -6,6 +6,7 @@ import { decryptToken } from "@metaflux/security";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { requestId, requireTenant, sendError } from "../tenant.js";
+import { assertMessageBudget } from "@metaflux/billing";
 
 const AVAILABLE_SCOPES = ["messages:send", "events:read", "workflows:read", "workflows:write", "leads:read", "assets:read", "ai:use"];
 
@@ -111,6 +112,7 @@ export async function developerRoutes(app: FastifyInstance) {
       return sendError(reply, 400, "invalid_channel", err instanceof Error ? err.message : "bad channel", reqId);
     }
     try {
+      await assertMessageBudget(store, ctx.organizationId);
       const key = process.env.TOKEN_ENCRYPTION_KEY;
       if (!key) throw Object.assign(new Error("Token encryption is not configured"), { status: 500 });
       const connections = await store.listConnections(ctx.organizationId, workspaceId);

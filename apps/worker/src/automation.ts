@@ -18,6 +18,7 @@ import {
   parseChannel,
   resolveSender,
 } from "@metaflux/meta";
+import { assertExecutionBudget, aiBudgetCents } from "@metaflux/billing";
 import { decryptToken } from "@metaflux/security";
 import { childLogger } from "@metaflux/observability";
 import { getQueueDriver, newJob } from "@metaflux/queues";
@@ -134,7 +135,7 @@ function servicesFor(
       const provider = llm.cheap ?? llm.strong;
       if (!provider) throw new Error("AI node requires an LLM provider (set OPENAI_API_KEY or ANTHROPIC_API_KEY)");
       const budgets = new WorkerBudgetStore(store);
-      await assertBudgetAvailable(budgets, organizationId);
+      await assertBudgetAvailable(budgets, organizationId, await aiBudgetCents(store, organizationId));
       const started = Date.now();
       const out = await provider.chat(
         [{ role: "system", content: "You are a helpful business assistant replying to a customer. Be concise." }, { role: "user", content: input.prompt }],
@@ -161,6 +162,14 @@ export interface ExecutePayload {
 /** Match an event against active workflows and enqueue executions (idempotent). */
 export async function matchAndEnqueue(store: Store, event: EventRecord): Promise<string[]> {
   if (!event.workspaceId) return [];
+  try {
+    await assertExecutionBudget(store, event.organizationId);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "execution budget exhausted";
+    childLogger({ operation: "webhook.process" }).warn({ eventId: event.eventId, msg: message });
+    await store.audit(event.organizationId, null, "workflow.executions.paused_plan_limit", event.id).catch(() => undefined);
+    return [];
+  }
   const product = productOf(event);
   const payload = (event.payload ?? {}) as unknown;
   const payloadText = extractEventText(payload);

@@ -16,6 +16,7 @@ import type {
   MembershipRecord,
   OrganizationRecord,
   SessionRecord,
+  SubscriptionRecord,
   Store,
   UserRecord,
   WorkflowRecord,
@@ -748,6 +749,71 @@ export class PrismaStore implements Store {
 
   async countApiRequests(organizationId: string, sinceIso: string): Promise<number> {
     return getPrisma().apiRequest.count({ where: { organizationId, createdAt: { gte: new Date(sinceIso) } } });
+  }
+
+  private toSubscription(s: {
+    id: string; organizationId: string; plan: string; status: string;
+    stripeCustomerId: string | null; stripeSubscriptionId: string | null;
+    currentPeriodEnd: Date | null; createdAt: Date; updatedAt: Date;
+  }): SubscriptionRecord {
+    return {
+      ...s,
+      currentPeriodEnd: s.currentPeriodEnd?.toISOString() ?? null,
+      createdAt: s.createdAt.toISOString(),
+      updatedAt: s.updatedAt.toISOString(),
+    };
+  }
+
+  async getSubscription(organizationId: string): Promise<SubscriptionRecord | null> {
+    const s = await getPrisma().subscription.findUnique({ where: { organizationId } });
+    return s ? this.toSubscription(s) : null;
+  }
+
+  async upsertSubscription(
+    organizationId: string,
+    patch: Partial<Pick<SubscriptionRecord, "plan" | "status" | "stripeCustomerId" | "stripeSubscriptionId" | "currentPeriodEnd">>,
+  ): Promise<SubscriptionRecord> {
+    const s = await getPrisma().subscription.upsert({
+      where: { organizationId },
+      create: {
+        organizationId,
+        plan: patch.plan ?? "free",
+        status: patch.status ?? "active",
+        stripeCustomerId: patch.stripeCustomerId ?? null,
+        stripeSubscriptionId: patch.stripeSubscriptionId ?? null,
+        currentPeriodEnd: patch.currentPeriodEnd ? new Date(patch.currentPeriodEnd) : null,
+      },
+      update: {
+        ...(patch.plan !== undefined ? { plan: patch.plan } : {}),
+        ...(patch.status !== undefined ? { status: patch.status } : {}),
+        ...(patch.stripeCustomerId !== undefined ? { stripeCustomerId: patch.stripeCustomerId } : {}),
+        ...(patch.stripeSubscriptionId !== undefined ? { stripeSubscriptionId: patch.stripeSubscriptionId } : {}),
+        ...(patch.currentPeriodEnd !== undefined ? { currentPeriodEnd: patch.currentPeriodEnd ? new Date(patch.currentPeriodEnd) : null } : {}),
+      },
+    });
+    return this.toSubscription(s);
+  }
+
+  async countWorkflows(organizationId: string): Promise<number> {
+    return getPrisma().workflow.count({ where: { organizationId } });
+  }
+
+  async countExecutionsSince(organizationId: string, sinceIso: string): Promise<number> {
+    return getPrisma().workflowExecution.count({
+      where: { workflow: { organizationId }, createdAt: { gte: new Date(sinceIso) } },
+    });
+  }
+
+  async findSubscriptionByStripeId(input: { customerId?: string; subscriptionId?: string }): Promise<SubscriptionRecord | null> {
+    const s = await getPrisma().subscription.findFirst({
+      where: {
+        OR: [
+          ...(input.customerId ? [{ stripeCustomerId: input.customerId } as const] : []),
+          ...(input.subscriptionId ? [{ stripeSubscriptionId: input.subscriptionId } as const] : []),
+        ],
+      },
+    });
+    return s ? this.toSubscription(s) : null;
   }
 }
 

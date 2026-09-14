@@ -20,6 +20,7 @@
     "@aws-sdk/client-s3": "^3.699.0",
     "@metaflux/ai": "workspace:*",
     "@metaflux/auth": "workspace:*",
+    "@metaflux/billing": "workspace:*",
     "@metaflux/config": "workspace:*",
     "@metaflux/database": "workspace:*",
     "@metaflux/meta": "workspace:*",

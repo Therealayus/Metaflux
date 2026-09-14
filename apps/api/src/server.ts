@@ -6,6 +6,7 @@ import { getStore } from "@metaflux/database";
 import Fastify from "fastify";
 import { aiRoutes } from "./routes/ai.js";
 import { authRoutes } from "./routes/auth.js";
+import { billingRoutes } from "./routes/billing.js";
 import { capabilityRoutes } from "./routes/capabilities.js";
 import { connectionRoutes } from "./routes/connections.js";
 import { developerRoutes } from "./routes/developer.js";
@@ -47,6 +48,19 @@ export function buildServer() {
     });
   });
 
+  // Raw-body capture for HMAC-verified webhooks (Stripe). Only routes that
+  // opt in via `config: { rawBody: true }` pay the buffering cost.
+  app.addHook("preParsing", async (request, _reply, payload) => {
+    const config = (request.routeOptions?.config ?? {}) as { rawBody?: boolean };
+    if (!config.rawBody) return payload;
+    const chunks: Buffer[] = [];
+    for await (const chunk of payload as AsyncIterable<Buffer>) chunks.push(Buffer.from(chunk));
+    const text = Buffer.concat(chunks).toString("utf8");
+    (request as unknown as { rawBodyText?: string }).rawBodyText = text;
+    const { Readable } = await import("node:stream");
+    return Readable.from([text]);
+  });
+
   // Request inspector log. Runs in onSend (before the response completes) so
   // logs are durable when the client receives the response. Best-effort otherwise.
   app.addHook("onSend", async (request, reply, payload) => {
@@ -76,6 +90,7 @@ export function buildServer() {
   app.register(healthRoutes);
   app.register(capabilityRoutes);
   app.register(authRoutes);
+  app.register(billingRoutes);
   app.register(aiRoutes);
   app.register(connectionRoutes);
   app.register(eventRoutes);

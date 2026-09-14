@@ -15,6 +15,7 @@ import type {
   MembershipRecord,
   OrganizationRecord,
   SessionRecord,
+  SubscriptionRecord,
   Store,
   UserRecord,
   WorkflowRecord,
@@ -646,5 +647,56 @@ export class MemoryStore implements Store {
 
   async countApiRequests(organizationId: string, sinceIso: string): Promise<number> {
     return this.apiRequests.filter((r) => r.organizationId === organizationId && r.createdAt >= sinceIso).length;
+  }
+
+  subscriptions = new Map<string, SubscriptionRecord>();
+
+  async getSubscription(organizationId: string): Promise<SubscriptionRecord | null> {
+    return this.subscriptions.get(organizationId) ?? null;
+  }
+
+  async upsertSubscription(
+    organizationId: string,
+    patch: Partial<Pick<SubscriptionRecord, "plan" | "status" | "stripeCustomerId" | "stripeSubscriptionId" | "currentPeriodEnd">>,
+  ): Promise<SubscriptionRecord> {
+    const existing = this.subscriptions.get(organizationId);
+    const now = new Date().toISOString();
+    if (existing) {
+      const updated = { ...existing, ...patch, updatedAt: now };
+      this.subscriptions.set(organizationId, updated);
+      return updated;
+    }
+    const rec: SubscriptionRecord = {
+      id: cuid("sub"),
+      organizationId,
+      plan: "free",
+      status: "active",
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      currentPeriodEnd: null,
+      createdAt: now,
+      updatedAt: now,
+      ...patch,
+    };
+    this.subscriptions.set(organizationId, rec);
+    return rec;
+  }
+
+  async countWorkflows(organizationId: string): Promise<number> {
+    return [...this.workflows.values()].filter((w) => w.organizationId === organizationId).length;
+  }
+
+  async countExecutionsSince(organizationId: string, sinceIso: string): Promise<number> {
+    return [...this.executions.values()].filter((e) => e.organizationId === organizationId && e.createdAt >= sinceIso).length;
+  }
+
+  async findSubscriptionByStripeId(input: { customerId?: string; subscriptionId?: string }): Promise<SubscriptionRecord | null> {
+    return (
+      [...this.subscriptions.values()].find(
+        (s) =>
+          (input.customerId && s.stripeCustomerId === input.customerId) ||
+          (input.subscriptionId && s.stripeSubscriptionId === input.subscriptionId),
+      ) ?? null
+    );
   }
 }

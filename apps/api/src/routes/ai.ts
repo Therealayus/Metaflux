@@ -25,6 +25,7 @@ import { z } from "zod";
 import { requireScope } from "@metaflux/auth";
 import { getStore } from "@metaflux/database";
 import type { Store } from "@metaflux/database";
+import { aiBudgetCents } from "@metaflux/billing";
 import { requestId, requireTenant, sendError } from "../tenant.js";
 
 const planBody = z.object({ prompt: z.string().min(3).max(2000) });
@@ -73,7 +74,7 @@ export async function aiRoutes(app: FastifyInstance) {
     const provider = llm.cheap;
     if (!provider) return { text: fallback, source: "fallback" };
     try {
-      await assertBudgetAvailable(budgets, organizationId);
+      await assertBudgetAvailable(budgets, organizationId, await aiBudgetCents(store, organizationId));
       const started = Date.now();
       const out = await provider.chat([{ role: "user", content: prompt }], { maxTokens: 400 });
       const usage = toBudgetUsage({
@@ -105,8 +106,13 @@ export async function aiRoutes(app: FastifyInstance) {
     let usage: BudgetUsage | undefined;
 
     if (provider) {
+      // Plan-aware cap enforced BEFORE spending. Exhaustion is a hard 429.
       try {
-        await assertBudgetAvailable(budgets, ctx.organizationId);
+        await assertBudgetAvailable(budgets, ctx.organizationId, await aiBudgetCents(store, ctx.organizationId));
+      } catch (err) {
+        return sendError(reply, 429, "ai_budget_exhausted", err instanceof Error ? err.message : "AI budget exhausted", reqId);
+      }
+      try {
         const started = Date.now();
         const out = await llmGeneratePlanRaw(provider, parsed.data.prompt);
         raw = out.raw;
