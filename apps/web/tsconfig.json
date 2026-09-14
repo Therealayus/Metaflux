@@ -2,14 +2,28 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "jsx": "preserve",
     "noEmit": true,
     "incremental": true,
-    "paths": { "@/*": ["./src/*"] }
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
   },
-  "include": ["next-env.d.ts", "next.config.js", "src", ".eslintrc.json"],
-  "references": [{ "path": "../../packages/ui" }]
+  "include": [
+    "next-env.d.ts",
+    "next.config.js",
+    "src",
+    ".eslintrc.json",
+    ".next/types/**/*.ts"
+  ]
 }

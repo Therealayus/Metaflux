@@ -26,7 +26,7 @@ export class MetaApiClient {
 
   private url(path: string, params?: MetaApiRequestOptions["params"]): string {
     const clean = path.startsWith("/") ? path : `/${path}`;
-    const qs = params ? `?${new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)]))).toString()}` : "";
+    const qs = params ? `?${new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)])).toString()}` : "";
     return `https://graph.facebook.com/${this.version}${clean}${qs}`;
   }
 

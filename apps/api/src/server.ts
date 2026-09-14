@@ -18,7 +18,7 @@ export function buildServer() {
   app.register(fastifyCookie);
   app.register(fastifyRateLimit, { max: 300, timeWindow: "1 minute" });
 
-  app.setErrorHandler((err, request, reply) => {
+  app.setErrorHandler((err: Error & { status?: number }, request, reply) => {
     const status = (err as { status?: number }).status ?? 500;
     const reqId = requestId(request);
     request.log.error({ requestId: reqId, err });
