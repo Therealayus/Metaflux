@@ -38,6 +38,9 @@ importers:
       '@metaflux/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@metaflux/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       '@metaflux/meta':
         specifier: workspace:*
         version: link:../../packages/meta

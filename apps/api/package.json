@@ -20,6 +20,7 @@
     "@metaflux/ai": "workspace:*",
     "@metaflux/auth": "workspace:*",
     "@metaflux/config": "workspace:*",
+    "@metaflux/database": "workspace:*",
     "@metaflux/meta": "workspace:*",
     "@metaflux/observability": "workspace:*",
     "@metaflux/queues": "workspace:*",

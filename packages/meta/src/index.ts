@@ -5,3 +5,6 @@ export * from "./errors.js";
 export * from "./webhooks.js";
 export * from "./client.js";
 export * from "./providers.js";
+export * from "./oauth.js";
+export * from "./discovery.js";
+export * from "./health.js";

@@ -73,11 +73,16 @@ model MetaConnection {
   // Encrypted access token (AES-256-GCM, see @metaflux/security). Never raw.
   encryptedToken String?
   tokenExpiresAt DateTime?
+  metaUserId     String?
+  webhookStatus  String?
+  lastEventAt    DateTime?
+  lastHealthAt   DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   assets    MetaAsset[]
 
+  @@unique([organizationId, workspaceId, product])
   @@index([workspaceId])
   @@index([organizationId])
 }
@@ -91,8 +96,11 @@ model MetaAsset {
   metaId       String
   parentId     String?
   healthy      Boolean  @default(true)
+  // Encrypted page-scoped token where Meta issues one (pages). Never raw.
+  encryptedToken String?
   connection MetaConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
 
+  @@unique([connectionId, metaId])
   @@index([connectionId])
 }
 
