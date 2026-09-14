@@ -1,0 +1,40 @@
+{
+  "name": "@metaflux/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "echo \"lint:api ok\"",
+    "test": "vitest run",
+    "clean": "rimraf dist coverage"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^9.4.0",
+    "@fastify/cors": "^9.0.1",
+    "@fastify/helmet": "^11.1.1",
+    "@fastify/rate-limit": "^9.1.0",
+    "@metaflux/ai": "workspace:*",
+    "@metaflux/auth": "workspace:*",
+    "@metaflux/config": "workspace:*",
+    "@metaflux/meta": "workspace:*",
+    "@metaflux/observability": "workspace:*",
+    "@metaflux/queues": "workspace:*",
+    "@metaflux/security": "workspace:*",
+    "@metaflux/types": "workspace:*",
+    "@metaflux/workflows": "workspace:*",
+    "fastify": "^5.2.0",
+    "pino": "^9.5.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "metaflux",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.7.1",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:web": "pnpm --filter @metaflux/web dev",
+    "dev:api": "pnpm --filter @metaflux/api dev",
+    "dev:worker": "pnpm --filter @metaflux/worker dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "pnpm --filter @metaflux/database generate",
+    "db:migrate": "pnpm --filter @metaflux/database migrate",
+    "db:push": "pnpm --filter @metaflux/database push",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

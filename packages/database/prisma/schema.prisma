@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String?
+  name         String?
+  emailVerifiedAt DateTime?
+  createdAt    DateTime @default(now())
+  memberships  Membership[]
+  sessions     Session[]
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  memberships Membership[]
+  workspaces  Workspace[]
+  auditLogs   AuditLog[]
+}
+
+model Membership {
+  id             String   @id @default(cuid())
+  userId         String
+  organizationId String
+  role           String   @default("member")
+  createdAt      DateTime @default(now())
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+}
+
+model Workspace {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  createdAt      DateTime @default(now())
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  connections  MetaConnection[]
+  workflows    Workflow[]
+
+  @@index([organizationId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model MetaConnection {
+  id             String   @id @default(cuid())
+  organizationId String
+  workspaceId    String
+  product        String
+  status         String   @default("disconnected")
+  scopes         String[] @default([])
+  // Encrypted access token (AES-256-GCM, see @metaflux/security). Never raw.
+  encryptedToken String?
+  tokenExpiresAt DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  assets    MetaAsset[]
+
+  @@index([workspaceId])
+  @@index([organizationId])
+}
+
+model MetaAsset {
+  id           String   @id @default(cuid())
+  connectionId String
+  type         String
+  product      String
+  name         String
+  metaId       String
+  parentId     String?
+  healthy      Boolean  @default(true)
+  connection MetaConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@index([connectionId])
+}
+
+model Workflow {
+  id             String   @id @default(cuid())
+  organizationId String
+  workspaceId    String
+  name           String
+  definition     Json
+  status         String   @default("draft")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  executions WorkflowExecution[]
+
+  @@index([workspaceId])
+}
+
+model WorkflowExecution {
+  id             String   @id @default(cuid())
+  workflowId     String
+  status         String   @default("queued")
+  idempotencyKey String   @unique
+  input          Json?
+  output         Json?
+  error          String?
+  createdAt      DateTime @default(now())
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+}
+
+model WebhookEvent {
+  id             String   @id @default(cuid())
+  organizationId String
+  workspaceId    String?
+  provider       String   @default("meta")
+  product        String
+  eventType      String
+  eventId        String   @unique
+  status         String   @default("received")
+  attemptCount   Int      @default(0)
+  payloadRef     String?
+  error          String?
+  receivedAt     DateTime @default(now())
+  processedAt    DateTime?
+
+  @@index([organizationId, receivedAt])
+  @@index([status])
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  action         String
+  target         String?
+  createdAt      DateTime @default(now())
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+}

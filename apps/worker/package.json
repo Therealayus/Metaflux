@@ -1,0 +1,28 @@
+{
+  "name": "@metaflux/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "echo \"lint:worker ok\"",
+    "test": "vitest run",
+    "clean": "rimraf dist coverage"
+  },
+  "dependencies": {
+    "@metaflux/meta": "workspace:*",
+    "@metaflux/observability": "workspace:*",
+    "@metaflux/queues": "workspace:*",
+    "@metaflux/workflows": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}
