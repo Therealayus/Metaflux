@@ -69,7 +69,7 @@ export async function workflowRoutes(app: FastifyInstance) {
     const parsed = listQuery.safeParse(request.query);
     if (!parsed.success) return sendError(reply, 400, "invalid_request", "Invalid query", requestId(request));
     const listed = await store.listWorkflows(ctx.organizationId, parsed.data);
-    return reply.send({ data: listed.items, nextCursor: listed.nextCursor, requestId: requestId(request) });
+    return reply.send({ data: { items: listed.items, nextCursor: listed.nextCursor }, requestId: requestId(request) });
   });
 
   app.get("/api/v1/workflows/:id", async (request, reply) => {
@@ -130,7 +130,7 @@ export async function workflowRoutes(app: FastifyInstance) {
       cursor: q.cursor,
       limit: q.limit ? Number(q.limit) : undefined,
     });
-    return reply.send({ data: listed.items, nextCursor: listed.nextCursor, requestId: requestId(request) });
+    return reply.send({ data: { items: listed.items, nextCursor: listed.nextCursor }, requestId: requestId(request) });
   });
 
   app.get("/api/v1/executions/:id", async (request, reply) => {
@@ -174,6 +174,6 @@ export async function workflowRoutes(app: FastifyInstance) {
       cursor: q.cursor,
       limit: q.limit ? Number(q.limit) : undefined,
     });
-    return reply.send({ data: listed.items, nextCursor: listed.nextCursor, requestId: requestId(request) });
+    return reply.send({ data: { items: listed.items, nextCursor: listed.nextCursor }, requestId: requestId(request) });
   });
 }

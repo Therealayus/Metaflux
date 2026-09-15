@@ -33,7 +33,7 @@ export async function eventRoutes(app: FastifyInstance) {
     const q = request.query as { workspaceId?: string };
     const workspaceId = q.workspaceId ?? ctx.workspaceId;
     const listed = await store.listEvents(ctx.organizationId, { ...parsed.data, workspaceId });
-    return reply.send({ data: listed.items, nextCursor: listed.nextCursor, requestId: requestId(request) });
+    return reply.send({ data: { items: listed.items, nextCursor: listed.nextCursor }, requestId: requestId(request) });
   });
 
   app.get("/api/v1/events/:id", async (request, reply) => {

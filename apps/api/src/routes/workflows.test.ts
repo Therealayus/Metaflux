@@ -78,13 +78,13 @@ describe("workflows api", () => {
     expect(active.json().data.status).toBe("active");
 
     const list = await app.inject({ method: "GET", url: "/api/v1/workflows?status=active", headers: HEADERS });
-    expect(list.json().data).toHaveLength(1);
+    expect(list.json().data.items).toHaveLength(1);
 
     const one = await app.inject({ method: "GET", url: `/api/v1/workflows/${id}`, headers: HEADERS });
     expect(one.json().data.name).toBe("Price capture");
 
     const execs = await app.inject({ method: "GET", url: `/api/v1/workflows/${id}/executions`, headers: HEADERS });
-    expect(execs.json().data).toHaveLength(0);
+    expect(execs.json().data.items).toHaveLength(0);
 
     // Retry of a non-failed execution is rejected.
     const store = await getStore();
@@ -96,7 +96,7 @@ describe("workflows api", () => {
     expect(retry.statusCode).toBe(202);
 
     const leads = await app.inject({ method: "GET", url: "/api/v1/leads", headers: HEADERS });
-    expect(leads.json().data).toHaveLength(0);
+    expect(leads.json().data.items).toHaveLength(0);
 
     // Delete requires confirmation too.
     const delNo = await app.inject({ method: "DELETE", url: `/api/v1/workflows/${id}`, headers: HEADERS });

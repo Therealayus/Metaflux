@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AppShell, PageHeader } from "@/components/app-shell";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, Page } from "@/lib/api";
 
 interface SendResult {
   providerMessageId: string;
@@ -35,8 +35,8 @@ export default function ExplorerPage() {
 
   async function refreshLogs() {
     try {
-      const items = await api<ApiLog[]>("/api/v1/requests?limit=10");
-      setLogs(items);
+      const page = await api<Page<ApiLog>>("/api/v1/requests?limit=10");
+      setLogs(page.items);
     } catch {
       // Explorer degrades gracefully without log access.
     }

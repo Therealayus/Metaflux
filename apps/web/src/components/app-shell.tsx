@@ -19,6 +19,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { FluxMark } from "./flux-mark";
+import { useSession } from "@/lib/use-session";
 
 const NAV = [
   { href: "/home", label: "Home", icon: Home },
@@ -39,6 +40,7 @@ const NAV = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { org, workspace, loading, usingDevFallback, user } = useSession();
   return (
     <div className="min-h-screen bg-ink-950 lg:grid lg:grid-cols-[248px_1fr]">
       <aside className="hidden border-r border-white/[0.06] bg-ink-900/50 lg:block">
@@ -68,10 +70,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
       <div className="min-w-0">
         <header className="flex h-16 items-center justify-between border-b border-white/[0.06] px-5">
-          <p className="text-sm text-zinc-400">Acme Corp <span className="mx-1.5 text-zinc-600">/</span> <span className="text-zinc-200">Production</span></p>
-          <Link href="/command" className="hidden h-9 items-center rounded-lg border border-white/10 bg-white/[0.03] px-4 text-sm text-zinc-200 sm:inline-flex">
-            What do you want to do?
-          </Link>
+          <p className="text-sm text-zinc-400">
+            {loading ? (
+              "Loading…"
+            ) : org ? (
+              <>
+                {org.name} <span className="mx-1.5 text-zinc-600">/</span> <span className="text-zinc-200">{workspace?.name ?? "No workspace"}</span>
+              </>
+            ) : usingDevFallback ? (
+              <>Dev workspace <span className="mx-1.5 text-zinc-600">/</span> <span className="text-zinc-200">local</span></>
+            ) : (
+              <Link href="/signin" className="hover:text-zinc-200">Sign in</Link>
+            )}
+          </p>
+          <div className="flex items-center gap-3">
+            {!loading && user ? (
+              <span className="hidden text-xs text-zinc-500 sm:inline" title={user.email}>{user.name ?? user.email}</span>
+            ) : null}
+            <Link href="/command" className="hidden h-9 items-center rounded-lg border border-white/10 bg-white/[0.03] px-4 text-sm text-zinc-200 sm:inline-flex">
+              What do you want to do?
+            </Link>
+          </div>
         </header>
         {/* Mobile nav */}
         <nav className="flex gap-1 overflow-x-auto border-b border-white/[0.06] px-3 py-2 lg:hidden">

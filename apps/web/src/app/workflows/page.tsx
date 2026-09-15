@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppShell, PageHeader } from "@/components/app-shell";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, Page } from "@/lib/api";
 
 interface Workflow {
   id: string;
@@ -29,7 +29,7 @@ export default function WorkflowsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api<Workflow[]>("/api/v1/workflows").then(setItems).catch((e: ApiError) => setError(e.message));
+    api<Page<Workflow>>("/api/v1/workflows").then((page) => setItems(page.items)).catch((e: ApiError) => setError(e.message));
   }, []);
 
   async function create() {

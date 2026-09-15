@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { FluxMark } from "@/components/flux-mark";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+import { API_URL, setSession } from "@/lib/api";
+import { clearSessionCache } from "@/lib/use-session";
 
 function Shell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
@@ -33,6 +33,19 @@ async function post(path: string, body: unknown): Promise<{ ok: boolean; message
   return { ok: res.ok, message: data.message, data: data.data };
 }
 
+/** After cookie auth succeeds, pin the org/user so API scoping matches the session. */
+async function persistSession(): Promise<void> {
+  clearSessionCache();
+  const res = await fetch(`${API_URL}/api/v1/auth/me`, { credentials: "include" });
+  if (!res.ok) return;
+  const body = (await res.json()) as {
+    data?: { user?: { id?: string }; organizations?: Array<{ id?: string }> };
+  };
+  const userId = body.data?.user?.id;
+  const orgId = body.data?.organizations?.[0]?.id;
+  if (userId && orgId) setSession(orgId, userId);
+}
+
 export function AuthForm({ mode }: { mode: "signin" | "signup" | "reset" }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -58,10 +71,12 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" | "reset" }) {
       if (mode === "signup") {
         const r = await post("/api/v1/auth/signup", { email, password, name: name || undefined });
         if (!r.ok) throw new Error(r.message ?? "Sign up failed");
+        await persistSession();
         window.location.href = "/home";
       } else if (mode === "signin") {
         const r = await post("/api/v1/auth/signin", { email, password });
         if (!r.ok) throw new Error(r.message ?? "Sign in failed");
+        await persistSession();
         window.location.href = "/home";
       } else {
         const r = await post("/api/v1/auth/password-reset/request", { email });

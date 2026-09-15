@@ -66,6 +66,7 @@ export interface Store {
   // Workspaces
   createWorkspace(organizationId: string, name: string): Promise<WorkspaceRecord>;
   getWorkspace(id: string, organizationId: string): Promise<WorkspaceRecord | null>;
+  listWorkspaces(organizationId: string): Promise<WorkspaceRecord[]>;
 
   // Connections
   upsertConnection(input: ConnectionUpsert): Promise<ConnectionRecord>;
@@ -102,6 +103,7 @@ export interface Store {
   updateEvent(id: string, organizationId: string, patch: EventPatch): Promise<EventRecord>;
   /** Retention: delete events received before `beforeIso`. Returns deleted count. */
   deleteEventsBefore(beforeIso: string): Promise<number>;
+  countEventsSince(organizationId: string, sinceIso: string): Promise<number>;
 
   // System-level routing: Meta object id -> owning connection (result re-scoped by caller).
   findConnectionByAssetMetaId(metaId: string): Promise<{

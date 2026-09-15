@@ -13,7 +13,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useCallback, useEffect, useState } from "react";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, Page } from "@/lib/api";
 
 type WfNode = Node<Record<string, unknown>>;
 type Status = "draft" | "active" | "paused" | "archived";
@@ -86,8 +86,8 @@ export default function WorkflowBuilderPage({ params }: { params: { id: string }
         setEdges(e);
       })
       .catch((e: ApiError) => setError(e.message));
-    api<Execution[]>(`/api/v1/workflows/${params.id}/executions?limit=10`)
-      .then(setExecutions)
+    api<Page<Execution>>(`/api/v1/workflows/${params.id}/executions?limit=10`)
+      .then((page) => setExecutions(page.items))
       .catch(() => undefined);
   }, [params.id, setNodes, setEdges]);
 

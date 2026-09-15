@@ -76,7 +76,7 @@ export async function developerRoutes(app: FastifyInstance) {
       cursor: q.cursor,
       limit: q.limit ? Number(q.limit) : undefined,
     });
-    return reply.send({ data: listed.items, nextCursor: listed.nextCursor, requestId: requestId(request) });
+    return reply.send({ data: { items: listed.items, nextCursor: listed.nextCursor }, requestId: requestId(request) });
   });
 
   app.get("/api/v1/requests/:id", async (request, reply) => {
@@ -154,14 +154,18 @@ export async function developerRoutes(app: FastifyInstance) {
   app.get("/api/v1/usage", async (request, reply) => {
     const ctx = await requireTenant(request);
     const since = new Date(Date.now() - 30 * 86400_000).toISOString();
-    const [apiRequests, aiSpend] = await Promise.all([
+    const [apiRequests, aiSpend, events, executions] = await Promise.all([
       store.countApiRequests(ctx.organizationId, since),
       store.sumAiUsageCostSince(ctx.organizationId, since),
+      store.countEventsSince(ctx.organizationId, since),
+      store.countExecutionsSince(ctx.organizationId, since),
     ]);
     return reply.send({
       data: {
         periodDays: 30,
         apiRequests,
+        events,
+        executions,
         aiSpendCents: Math.round(aiSpend * 100) / 100,
       },
       requestId: requestId(request),

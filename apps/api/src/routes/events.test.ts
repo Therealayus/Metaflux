@@ -88,9 +88,9 @@ describe("events api", () => {
 
     const list = await app.inject({ method: "GET", url: "/api/v1/events", headers: HEADERS });
     expect(list.statusCode).toBe(200);
-    expect(list.json().data).toHaveLength(1);
-    expect(list.json().data[0].payload).toBeNull(); // list views omit payloads
-    const id = list.json().data[0].id as string;
+    expect(list.json().data.items).toHaveLength(1);
+    expect(list.json().data.items[0].payload).toBeNull(); // list views omit payloads
+    const id = list.json().data.items[0].id as string;
 
     const one = await app.inject({ method: "GET", url: `/api/v1/events/${id}`, headers: HEADERS });
     expect(one.statusCode).toBe(200);
@@ -112,15 +112,15 @@ describe("events api", () => {
 
     // Cursor pagination over a second page.
     const page1 = await app.inject({ method: "GET", url: "/api/v1/events?limit=1", headers: HEADERS });
-    expect(page1.json().data).toHaveLength(1);
-    expect(page1.json().nextCursor).toBeTruthy();
+    expect(page1.json().data.items).toHaveLength(1);
+    expect(page1.json().data.nextCursor).toBeTruthy();
     const page2 = await app.inject({
       method: "GET",
-      url: `/api/v1/events?limit=1&cursor=${page1.json().nextCursor}`,
+      url: `/api/v1/events?limit=1&cursor=${page1.json().data.nextCursor}`,
       headers: HEADERS,
     });
-    expect(page2.json().data).toHaveLength(1);
-    expect(page2.json().data[0].id).not.toBe(page1.json().data[0].id);
+    expect(page2.json().data.items).toHaveLength(1);
+    expect(page2.json().data.items[0].id).not.toBe(page1.json().data.items[0].id);
 
     // Foreign tenant sees nothing.
     const other = await app.inject({
@@ -128,6 +128,6 @@ describe("events api", () => {
       url: "/api/v1/events",
       headers: { "x-user-id": "u9", "x-org-id": "org_other" },
     });
-    expect(other.json().data).toHaveLength(0);
+    expect(other.json().data.items).toHaveLength(0);
   });
 });

@@ -45,6 +45,12 @@ export class MemoryStore implements Store {
     return ws && ws.organizationId === organizationId ? ws : null;
   }
 
+  async listWorkspaces(organizationId: string): Promise<WorkspaceRecord[]> {
+    return [...this.workspaces.values()]
+      .filter((w) => w.organizationId === organizationId)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
   async upsertConnection(input: ConnectionUpsert): Promise<ConnectionRecord> {
     const existing = [...this.connections.values()].find(
       (c) =>
@@ -238,6 +244,10 @@ export class MemoryStore implements Store {
       }
     }
     return n;
+  }
+
+  async countEventsSince(organizationId: string, sinceIso: string): Promise<number> {
+    return [...this.events.values()].filter((e) => e.organizationId === organizationId && e.receivedAt >= sinceIso).length;
   }
 
   async findConnectionByAssetMetaId(metaId: string): Promise<{

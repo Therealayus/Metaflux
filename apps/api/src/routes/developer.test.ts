@@ -113,7 +113,7 @@ describe("developer platform", () => {
 
     // Request inspector captured the key-authenticated call.
     const logs = await app.inject({ method: "GET", url: "/api/v1/requests?status=201", headers: HEADERS });
-    const entry = logs.json().data.find((r: { path: string }) => r.path === "/api/v1/messages");
+    const entry = logs.json().data.items.find((r: { path: string }) => r.path === "/api/v1/messages");
     expect(entry).toBeTruthy();
     expect(entry.keyId).toBeTruthy();
     const one = await app.inject({ method: "GET", url: `/api/v1/requests/${entry.id}`, headers: HEADERS });

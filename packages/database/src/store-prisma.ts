@@ -52,6 +52,11 @@ export class PrismaStore implements Store {
     return w ? { ...w, createdAt: w.createdAt.toISOString() } : null;
   }
 
+  async listWorkspaces(organizationId: string): Promise<WorkspaceRecord[]> {
+    const rows = await getPrisma().workspace.findMany({ where: { organizationId }, orderBy: { createdAt: "asc" } });
+    return rows.map((w) => ({ ...w, createdAt: w.createdAt.toISOString() }));
+  }
+
   async upsertConnection(input: ConnectionUpsert): Promise<ConnectionRecord> {
     const c = await getPrisma().metaConnection.upsert({
       where: {
@@ -291,6 +296,10 @@ export class PrismaStore implements Store {
   async deleteEventsBefore(beforeIso: string): Promise<number> {
     const res = await getPrisma().webhookEvent.deleteMany({ where: { receivedAt: { lte: new Date(beforeIso) } } });
     return res.count;
+  }
+
+  async countEventsSince(organizationId: string, sinceIso: string): Promise<number> {
+    return getPrisma().webhookEvent.count({ where: { organizationId, receivedAt: { gte: new Date(sinceIso) } } });
   }
 
   async findConnectionByAssetMetaId(metaId: string): Promise<{

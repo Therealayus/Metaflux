@@ -16,6 +16,7 @@ import { eventRoutes } from "./routes/events.js";
 import { healthRoutes } from "./routes/health.js";
 import { opsRoutes } from "./routes/ops.js";
 import { webhookRoutes } from "./routes/webhooks.js";
+import { workspaceRoutes } from "./routes/workspaces.js";
 import { workflowRoutes } from "./routes/workflows.js";
 import { requestId, resolveTenant } from "./tenant.js";
 
@@ -103,6 +104,7 @@ export function buildServer() {
   app.register(connectionRoutes);
   app.register(eventRoutes);
   app.register(webhookRoutes);
+  app.register(workspaceRoutes);
   app.register(workflowRoutes);
   app.register(developerRoutes);
 
