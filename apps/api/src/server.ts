@@ -3,8 +3,10 @@ import fastifyCors from "@fastify/cors";
 import fastifyHelmet from "@fastify/helmet";
 import fastifyRateLimit from "@fastify/rate-limit";
 import { getStore } from "@metaflux/database";
+import { metrics, routeOf } from "@metaflux/observability";
 import Fastify from "fastify";
 import { aiRoutes } from "./routes/ai.js";
+import { adminRoutes } from "./routes/admin.js";
 import { authRoutes } from "./routes/auth.js";
 import { billingRoutes } from "./routes/billing.js";
 import { capabilityRoutes } from "./routes/capabilities.js";
@@ -12,11 +14,12 @@ import { connectionRoutes } from "./routes/connections.js";
 import { developerRoutes } from "./routes/developer.js";
 import { eventRoutes } from "./routes/events.js";
 import { healthRoutes } from "./routes/health.js";
+import { opsRoutes } from "./routes/ops.js";
 import { webhookRoutes } from "./routes/webhooks.js";
 import { workflowRoutes } from "./routes/workflows.js";
 import { requestId, resolveTenant } from "./tenant.js";
 
-const SKIP_LOGGING = new Set(["/api/v1/health", "/api/v1/metrics", "/api/v1/live", "/api/v1/ready"]);
+const SKIP_LOGGING = new Set(["/api/v1/health", "/api/v1/metrics", "/api/v1/live", "/api/v1/ready", "/live"]);
 
 export function buildServer() {
   const app = Fastify({ logger: true, genReqId: () => requestId({ headers: {} } as never) });
@@ -61,11 +64,14 @@ export function buildServer() {
     return Readable.from([text]);
   });
 
-  // Request inspector log. Runs in onSend (before the response completes) so
-  // logs are durable when the client receives the response. Best-effort otherwise.
+  // Request inspector log + metrics. Runs in onSend (before the response
+  // completes) so logs are durable when the client receives the response.
   app.addHook("onSend", async (request, reply, payload) => {
     const path = request.url.split("?")[0] ?? request.url;
     if (!SKIP_LOGGING.has(path)) {
+      const route = routeOf(path);
+      metrics.httpRequests.inc({ route, method: request.method, status: String(reply.statusCode) });
+      metrics.httpLatency.observe(Math.round(reply.elapsedTime), { route });
       try {
         const ctx = await resolveTenant(request);
         if (ctx) {
@@ -88,6 +94,8 @@ export function buildServer() {
   });
 
   app.register(healthRoutes);
+  app.register(opsRoutes);
+  app.register(adminRoutes);
   app.register(capabilityRoutes);
   app.register(authRoutes);
   app.register(billingRoutes);

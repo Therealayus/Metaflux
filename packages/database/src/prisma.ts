@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
 let cached: PrismaClient | undefined;
+let replicaCached: PrismaClient | undefined;
 
 /**
  * Lazy singleton Prisma client with connection pooling via DATABASE_URL.
@@ -12,4 +13,18 @@ export function getPrisma(): PrismaClient {
     cached = new PrismaClient({ log: ["error", "warn"] });
   }
   return cached;
+}
+
+/**
+ * Read-replica client for heavy list paths. Without REPLICA_DATABASE_URL it
+ * returns the primary — same behavior, zero config. With a replica, reads
+ * scale horizontally while writes stay on the primary.
+ */
+export function getReplicaPrisma(): PrismaClient {
+  const url = process.env.REPLICA_DATABASE_URL;
+  if (!url) return getPrisma();
+  if (!replicaCached) {
+    replicaCached = new PrismaClient({ log: ["error", "warn"], datasourceUrl: url });
+  }
+  return replicaCached;
 }

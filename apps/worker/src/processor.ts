@@ -1,5 +1,6 @@
 import { getStore, type EventRecord, type Store } from "@metaflux/database";
 import { childLogger } from "@metaflux/observability";
+import { metrics } from "@metaflux/observability";
 import {
   backoffMs,
   getQueueDriver,
@@ -90,17 +91,20 @@ async function handleOne(driver: QueueDriver, queued: QueuedJob, store: Store): 
   const handler = handlers.get(job.name);
   if (!handler) {
     log.error({ jobId: job.id, jobName: job.name, msg: "no handler registered" });
+    metrics.jobs.inc({ name: job.name, outcome: "no_handler" });
     await driver.deadLetter(queued, `No handler registered for ${job.name}`);
     return;
   }
   try {
     await handler(job, { store, log });
+    metrics.jobs.inc({ name: job.name, outcome: "succeeded" });
     await driver.ack(queued.handle);
   } catch (err) {
     const message = err instanceof Error ? err.message : "handler failed";
     const attempts = job.attempts + 1;
     if (attempts >= job.maxAttempts) {
       log.error({ jobId: job.id, err, msg: "dead letter" });
+      metrics.jobs.inc({ name: job.name, outcome: "dead_letter" });
       await driver.deadLetter(queued, message);
       if (job.name === "webhook.process") {
         const p = job.payload as WebhookProcessPayload;
@@ -110,6 +114,7 @@ async function handleOne(driver: QueueDriver, queued: QueuedJob, store: Store): 
       }
     } else {
       log.warn({ jobId: job.id, attempt: attempts, msg: "retrying" });
+      metrics.jobs.inc({ name: job.name, outcome: "retry" });
       await driver.retry(queued, backoffMs(attempts));
       if (job.name === "webhook.process") {
         const p = job.payload as WebhookProcessPayload;

@@ -16,6 +16,6 @@
     "migrate": "prisma migrate dev",
     "push": "prisma db push"
   },
-  "dependencies": { "@prisma/client": "^5.22.0" },
+  "dependencies": { "@prisma/client": "^5.22.0", "ioredis": "^5.4.1" },
   "devDependencies": { "prisma": "^5.22.0", "rimraf": "^6.0.1", "typescript": "^5.6.3", "vitest": "^2.1.8" }
 }

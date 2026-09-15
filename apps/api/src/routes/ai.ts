@@ -6,6 +6,7 @@ import {
   llmGeneratePlanRaw,
   monthStartIso,
   monthlyBudgetCents,
+  promptCacheKey,
   providersFromEnv,
   routeModel,
   toBudgetUsage,
@@ -23,9 +24,10 @@ import {
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { requireScope } from "@metaflux/auth";
-import { getStore } from "@metaflux/database";
+import { getCache, getStore, isEnabled } from "@metaflux/database";
 import type { Store } from "@metaflux/database";
 import { aiBudgetCents } from "@metaflux/billing";
+import { metrics } from "@metaflux/observability";
 import { requestId, requireTenant, sendError } from "../tenant.js";
 
 const planBody = z.object({ prompt: z.string().min(3).max(2000) });
@@ -85,6 +87,7 @@ export async function aiRoutes(app: FastifyInstance) {
         latencyMs: Date.now() - started,
       });
       await budgets.record(organizationId, usage);
+      metrics.aiSpendCents.inc({ organizationId, model: usage.model }, usage.costCents);
       return { text: out.text, source: "llm", usage };
     } catch (err) {
       app.log.warn({ err, msg: "llm narrative failed, using fallback" });
@@ -112,6 +115,19 @@ export async function aiRoutes(app: FastifyInstance) {
       } catch (err) {
         return sendError(reply, 429, "ai_budget_exhausted", err instanceof Error ? err.message : "AI budget exhausted", reqId);
       }
+      // Prompt-hash cache (privacy-safe: key is a hash, never the prompt).
+      const cacheKey = promptCacheKey("plan", parsed.data.prompt);
+      if (await isEnabled(getCache(), "ai.plan_cache", { organizationId: ctx.organizationId }, true)) {
+        const cached = await getCache().getJson<unknown>(cacheKey).catch(() => null);
+        if (cached) {
+          try {
+            const plan = validatePlan(cached, registry);
+            return reply.send({ data: { ...plan, source: "cache" }, requestId: reqId });
+          } catch {
+            // Stale/invalid entry: fall through to fresh planning.
+          }
+        }
+      }
       try {
         const started = Date.now();
         const out = await llmGeneratePlanRaw(provider, parsed.data.prompt);
@@ -125,6 +141,8 @@ export async function aiRoutes(app: FastifyInstance) {
           latencyMs: Date.now() - started,
         });
         await budgets.record(ctx.organizationId, usage);
+        metrics.aiSpendCents.inc({ organizationId: ctx.organizationId, model: usage.model }, usage.costCents);
+        await getCache().setJson(cacheKey, raw, 3600).catch(() => undefined);
       } catch (err) {
         request.log.warn({ requestId: reqId, err, msg: "llm planning failed, using rule-based fallback" });
         raw = await planner.generatePlan(parsed.data.prompt);

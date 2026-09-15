@@ -16,6 +16,7 @@ import {
   Boxes,
   ScrollText,
   FlaskConical,
+  ShieldAlert,
 } from "lucide-react";
 import { FluxMark } from "./flux-mark";
 
@@ -33,6 +34,7 @@ const NAV = [
   { href: "/developer", label: "Developer", icon: FlaskConical },
   { href: "/settings", label: "Settings", icon: Settings },
   { href: "/billing", label: "Billing", icon: Wallet },
+  { href: "/admin", label: "Admin", icon: ShieldAlert },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

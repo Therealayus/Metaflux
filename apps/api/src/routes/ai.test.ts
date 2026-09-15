@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { __resetStoreForTests } from "@metaflux/database";
+import { __resetCacheForTests, __resetStoreForTests } from "@metaflux/database";
 import { buildServer } from "../server.js";
 
 const HEADERS = { "x-user-id": "u1", "x-org-id": "org_ai" };
@@ -11,12 +11,15 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 beforeEach(() => {
   process.env.STORE_DRIVER = "memory";
+  process.env.QUEUE_DRIVER = "memory";
+  process.env.CACHE_DRIVER = "memory";
   process.env.AUTH_SECRET = "a".repeat(32);
   process.env.TOKEN_ENCRYPTION_KEY = randomBytes(32).toString("base64");
   delete process.env.OPENAI_API_KEY;
   delete process.env.ANTHROPIC_API_KEY;
   delete process.env.AI_MONTHLY_BUDGET_CENTS;
   __resetStoreForTests();
+  __resetCacheForTests();
 });
 
 afterEach(() => {
@@ -125,5 +128,32 @@ describe("ai routes", () => {
     expect(res.statusCode).toBe(200);
     expect(["confirmed", "probable", "unknown"]).toContain(res.json().data.certainty);
     expect(res.json().data.recommendedFix.length).toBeGreaterThan(5);
+  });
+
+  it("serves repeated prompts from the privacy-safe plan cache", async () => {
+    process.env.OPENAI_API_KEY = "test-key";
+    const planJson = JSON.stringify({
+      intent: "comment_to_dm",
+      summary: "Reply via DM",
+      steps: [{ provider: "instagram", action: "send_dm" }],
+      requiredCapabilities: [{ product: "instagram", capability: "messaging" }],
+      requiredPermissions: [],
+      requiredAssets: [],
+      missingRequirements: [],
+      confidence: 0.9,
+      needsConfirmation: true,
+    });
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({ choices: [{ message: { content: planJson } }], usage: { prompt_tokens: 200, completion_tokens: 100 } }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const app = buildServer();
+    const prompt = "When someone comments PRICE on Instagram send them a DM please cache me";
+    const first = await app.inject({ method: "POST", url: "/api/v1/ai/plan", headers: HEADERS, payload: { prompt } });
+    expect(first.json().data.source).toBe("llm");
+    const second = await app.inject({ method: "POST", url: "/api/v1/ai/plan", headers: HEADERS, payload: { prompt } });
+    expect(second.json().data.source).toBe("cache");
+    expect(second.json().data.intent).toBe("comment_to_dm");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

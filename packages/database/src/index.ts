@@ -1,4 +1,6 @@
-export { getPrisma } from "./prisma.js";
+export { getPrisma, getReplicaPrisma } from "./prisma.js";
+export { MemoryCache, RedisCache, getCache, __resetCacheForTests, type Cache } from "./cache.js";
+export { deleteFlag, evaluateFlag, isEnabled, listFlags, setFlag, type FlagContext, type FlagValue } from "./flags.js";
 export type {
   ApiKeyPublic,
   ApiKeyRecord,

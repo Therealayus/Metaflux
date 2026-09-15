@@ -1,4 +1,4 @@
-import { getPrisma } from "./prisma.js";
+import { getPrisma, getReplicaPrisma } from "./prisma.js";
 import type {
   ApiKeyPublic,
   ApiKeyRecord,
@@ -244,7 +244,7 @@ export class PrismaStore implements Store {
       const at = new Date(receivedAt);
       cursorFilter = { OR: [{ receivedAt: { lt: at } }, { receivedAt: at, id: { lt: id } }] };
     }
-    const rows = await getPrisma().webhookEvent.findMany({
+    const rows = await getReplicaPrisma().webhookEvent.findMany({
       where: {
         organizationId,
         ...(opts.product ? { product: opts.product } : {}),
@@ -724,7 +724,7 @@ export class PrismaStore implements Store {
       const at = new Date(receivedAt);
       cursorFilter = { OR: [{ createdAt: { lt: at } }, { createdAt: at, id: { lt: id } }] };
     }
-    const rows = await getPrisma().apiRequest.findMany({
+    const rows = await getReplicaPrisma().apiRequest.findMany({
       where: {
         organizationId,
         ...(opts.keyId ? { keyId: opts.keyId } : {}),

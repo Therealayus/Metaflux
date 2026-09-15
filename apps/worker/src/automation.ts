@@ -20,7 +20,7 @@ import {
 } from "@metaflux/meta";
 import { assertExecutionBudget, aiBudgetCents } from "@metaflux/billing";
 import { decryptToken } from "@metaflux/security";
-import { childLogger } from "@metaflux/observability";
+import { childLogger, metrics } from "@metaflux/observability";
 import { getQueueDriver, newJob } from "@metaflux/queues";
 import {
   extractEventText,
@@ -141,10 +141,9 @@ function servicesFor(
         [{ role: "system", content: "You are a helpful business assistant replying to a customer. Be concise." }, { role: "user", content: input.prompt }],
         { maxTokens: 300 },
       );
-      await budgets.record(
-        organizationId,
-        toBudgetUsage({ model: out.model, tokensIn: out.tokensIn, tokensOut: out.tokensOut, requestType: "workflow_ai", latencyMs: Date.now() - started }),
-      );
+      const usage = toBudgetUsage({ model: out.model, tokensIn: out.tokensIn, tokensOut: out.tokensOut, requestType: "workflow_ai", latencyMs: Date.now() - started });
+      await budgets.record(organizationId, usage);
+      metrics.aiSpendCents.inc({ organizationId, model: usage.model }, usage.costCents);
       return out.text;
     },
     log: (message) => log.info({ workflowId, msg: message }),
@@ -273,9 +272,11 @@ async function runExecution(store: Store, log: ReturnType<typeof childLogger>, p
       output: { steps: outcome.steps, output: outcome.output, filtered: outcome.status === "filtered" },
       error: null,
     });
+    metrics.workflowExecutions.inc({ status: "succeeded" });
   } catch (err) {
     const message = err instanceof Error ? err.message : "execution failed";
     await store.updateExecution(execution.id, payload.organizationId, { status: "failed", error: message });
+    metrics.workflowExecutions.inc({ status: "failed" });
     log.warn({ executionId: execution.id, err: message, msg: "execution failed (acked, see execution row)" });
   }
 }

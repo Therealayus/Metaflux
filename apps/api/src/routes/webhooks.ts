@@ -1,5 +1,6 @@
 import { getStore } from "@metaflux/database";
 import { normalizeWebhookEvent, verifyWebhookSignature } from "@metaflux/meta";
+import { metrics } from "@metaflux/observability";
 import { getQueueDriver, newJob } from "@metaflux/queues";
 import type { FastifyInstance } from "fastify";
 import { persistPayload, payloadStoreFromEnv } from "../payloads.js";
@@ -49,6 +50,7 @@ export async function webhookRoutes(app: FastifyInstance) {
     }
     if (!routed) {
       request.log.warn({ requestId: reqId, eventId: normalized.eventId, objectId: normalized.objectId, msg: "unmapped webhook sender" });
+      metrics.webhookEvents.inc({ product, outcome: "unmapped" });
       return reply.status(202).send({ data: { accepted: true, mapped: false, eventId: normalized.eventId }, requestId: reqId });
     }
 
@@ -64,6 +66,7 @@ export async function webhookRoutes(app: FastifyInstance) {
       payload: stored.inline,
     });
     if (!created) {
+      metrics.webhookEvents.inc({ product, outcome: "duplicate" });
       return reply.status(202).send({ data: { accepted: true, duplicate: true, eventId: normalized.eventId }, requestId: reqId });
     }
 
@@ -74,6 +77,7 @@ export async function webhookRoutes(app: FastifyInstance) {
     );
     await getQueueDriver().enqueue(job);
     await store.updateConnection(routed.connection.id, routed.organizationId, { lastEventAt: normalized.receivedAt });
+    metrics.webhookEvents.inc({ product, outcome: "accepted" });
     request.log.info({ requestId: reqId, eventId: normalized.eventId, jobId: job.id });
     return reply.status(202).send({ data: { accepted: true, eventId: normalized.eventId, jobId: job.id }, requestId: reqId });
   });
