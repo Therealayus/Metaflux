@@ -37,7 +37,7 @@ function redact(value: unknown): unknown {
 
 export const logger = pino({
   level: process.env.LOG_LEVEL ?? "info",
-  base: { service: "metaflux" },
+  base: { service: "socialflux" },
   formatters: {
     log(obj) {
       return redact(obj) as Record<string, unknown>;

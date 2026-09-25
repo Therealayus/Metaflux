@@ -17,6 +17,6 @@ describe("app routing integrity", () => {
 
   it("landing page states the product promise", () => {
     const landing = readFileSync(join(APP_DIR, "page.tsx"), "utf8");
-    expect(landing).toContain("MetaFlux speaks Meta APIs");
+    expect(landing).toContain("SocialFlux speaks Meta APIs");
   });
 });

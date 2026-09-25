@@ -1,25 +1,25 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: metaflux-postgres
+    container_name: socialflux-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: metaflux
-      POSTGRES_PASSWORD: metaflux_dev
-      POSTGRES_DB: metaflux
+      POSTGRES_USER: socialflux
+      POSTGRES_PASSWORD: socialflux_dev
+      POSTGRES_DB: socialflux
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U metaflux"]
+      test: ["CMD-SHELL", "pg_isready -U socialflux"]
       interval: 5s
       timeout: 5s
       retries: 10
 
   redis:
     image: redis:7-alpine
-    container_name: metaflux-redis
+    container_name: socialflux-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -33,7 +33,7 @@ services:
 
   minio:
     image: minio/minio:latest
-    container_name: metaflux-minio
+    container_name: socialflux-minio
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:

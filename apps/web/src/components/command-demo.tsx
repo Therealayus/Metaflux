@@ -32,12 +32,12 @@ export function CommandDemo() {
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-ink-900/80 shadow-2xl shadow-indigo-950/40 backdrop-blur">
+    <div className="overflow-hidden rounded-2xl border border-white/10 bg-ink-900/80 shadow-2xl shadow-indigo-950/40 backdrop-blur light:border-indigo-950/20 light:shadow-[0_24px_70px_-24px_rgba(79,70,229,0.45)]">
       <div className="flex items-center gap-2 border-b border-white/[0.06] px-4 py-3">
         <span className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
         <span className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
         <span className="h-2.5 w-2.5 rounded-full bg-indigo-500/70" />
-        <span className="ml-2 text-xs text-zinc-500">metaflux — build with ai</span>
+        <span className="ml-2 text-xs text-zinc-500">socialflux — build with ai</span>
       </div>
       <div className="p-5 sm:p-6">
         <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">What do you want Meta to do?</p>

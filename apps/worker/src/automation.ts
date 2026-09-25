@@ -5,30 +5,30 @@ import {
   toBudgetUsage,
   type BudgetStore,
   type BudgetUsage,
-} from "@metaflux/ai";
+} from "@socialflux/ai";
 import {
   getStore,
   type EventRecord,
   type Store,
   type WorkflowRecord,
-} from "@metaflux/database";
+} from "@socialflux/database";
 import {
   MetaApiClient,
   extractSenderId,
   parseChannel,
   resolveSender,
-} from "@metaflux/meta";
-import { assertExecutionBudget, aiBudgetCents } from "@metaflux/billing";
-import { decryptToken } from "@metaflux/security";
-import { childLogger, metrics } from "@metaflux/observability";
-import { getQueueDriver, newJob } from "@metaflux/queues";
+} from "@socialflux/meta";
+import { assertExecutionBudget, aiBudgetCents } from "@socialflux/billing";
+import { decryptToken } from "@socialflux/security";
+import { childLogger, metrics } from "@socialflux/observability";
+import { getQueueDriver, newJob } from "@socialflux/queues";
 import {
   extractEventText,
   runWorkflow,
   triggerMatches,
   validateWorkflowDefinition,
   type EngineServices,
-} from "@metaflux/workflows";
+} from "@socialflux/workflows";
 import { registerHandler } from "./processor.js";
 
 const META_VERSION = process.env.META_GRAPH_API_VERSION ?? "v21.0";

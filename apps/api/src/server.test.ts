@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { __resetQueueDriverForTests } from "@metaflux/queues";
-import { __resetStoreForTests } from "@metaflux/database";
+import { __resetQueueDriverForTests } from "@socialflux/queues";
+import { __resetStoreForTests } from "@socialflux/database";
 import { buildServer } from "./server.js";
 
 beforeEach(() => {

@@ -14,12 +14,12 @@ import {
   signState,
   subscribePageWebhooks,
   verifyState,
-} from "@metaflux/meta";
-import { decryptToken, encryptToken } from "@metaflux/security";
-import { requireScope } from "@metaflux/auth";
+} from "@socialflux/meta";
+import { decryptToken, encryptToken } from "@socialflux/security";
+import { requireScope } from "@socialflux/auth";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { getStore } from "@metaflux/database";
+import { getStore } from "@socialflux/database";
 import { requestId, requireTenant, sendError } from "../tenant.js";
 
 const PRODUCT_SCOPES: Record<string, string[]> = (() => {
@@ -182,15 +182,23 @@ export async function connectionRoutes(app: FastifyInstance) {
       const cfg = metaConfig();
       const client = new MetaApiClient(cfg.version);
       const token = decryptToken(conn.encryptedToken, tokenKey());
-      const [pages, waba] = await Promise.all([
+      const [pagesRes, wabaRes] = await Promise.allSettled([
         discoverFacebookPages(client, token),
         discoverWhatsAppAssets(client, token),
       ]);
+      // One source failing (e.g. token lacks business_management for the
+      // /me/businesses call) must not discard the other source's results.
+      const warnings: Array<{ source: string; message: string }> = [];
+      const found: Awaited<ReturnType<typeof discoverFacebookPages>> = [];
+      if (pagesRes.status === "fulfilled") found.push(...pagesRes.value);
+      else warnings.push({ source: "facebook_pages", message: pagesRes.reason instanceof Error ? pagesRes.reason.message : "Pages discovery failed" });
+      if (wabaRes.status === "fulfilled") found.push(...wabaRes.value);
+      else warnings.push({ source: "whatsapp_assets", message: wabaRes.reason instanceof Error ? wabaRes.reason.message : "WhatsApp discovery failed" });
       const key = tokenKey();
       const saved = await store.replaceAssets(
         id,
         ctx.organizationId,
-        [...pages, ...waba].map((a) => ({
+        [...found].map((a) => ({
           ...a,
           encryptedToken: a.pageAccessToken ? encryptToken(a.pageAccessToken, key) : undefined,
         })),
@@ -198,7 +206,7 @@ export async function connectionRoutes(app: FastifyInstance) {
       await store.updateConnection(id, ctx.organizationId, { status: "connected" });
       await store.audit(ctx.organizationId, ctx.userId, "meta.assets.discovered", id);
       return reply.send({
-        data: { discovered: saved.length, assets: saved.map(({ encryptedToken: _e, ...a }) => a) },
+        data: { discovered: saved.length, warnings, assets: saved.map(({ encryptedToken: _e, ...a }) => a) },
         requestId: reqId,
       });
     } catch (err) {

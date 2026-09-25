@@ -1,5 +1,5 @@
 /** Phase 3 E2E seed: org + workspace + facebook connection + page asset. */
-import { PrismaStore, getPrisma } from "@metaflux/database";
+import { PrismaStore, getPrisma } from "@socialflux/database";
 
 const prisma = getPrisma();
 const organization = await prisma.organization.upsert({

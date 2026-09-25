@@ -1,6 +1,6 @@
 import type { MetaApiClient } from "./client.js";
 import type { MetaAssetType } from "./assets.js";
-import type { MetaProduct } from "@metaflux/types";
+import type { MetaProduct } from "@socialflux/types";
 
 export interface DiscoveredAsset {
   metaId: string;

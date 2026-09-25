@@ -1,9 +1,9 @@
-import { getStore } from "@metaflux/database";
-import { getQueueDriver, newJob } from "@metaflux/queues";
+import { getStore } from "@socialflux/database";
+import { getQueueDriver, newJob } from "@socialflux/queues";
 import { randomBytes } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { requireScope } from "@metaflux/auth";
+import { requireScope } from "@socialflux/auth";
 import { persistPayload, payloadStoreFromEnv, readPayload } from "../payloads.js";
 import { requestId, requireTenant, sendError } from "../tenant.js";
 

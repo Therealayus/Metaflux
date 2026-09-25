@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildServer } from "../server.js";
-import { __resetStoreForTests, getStore } from "@metaflux/database";
+import { __resetStoreForTests, getStore } from "@socialflux/database";
 
 const ORG = "org_p1";
 const HEADERS = { "x-user-id": "u1", "x-org-id": ORG };

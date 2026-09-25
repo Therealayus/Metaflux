@@ -54,10 +54,10 @@ export default function AnalyticsPage() {
             ["API calls", usage.apiRequests.toLocaleString(), `last ${usage.periodDays} days`],
             ["AI spend", `$${(usage.aiSpendCents / 100).toFixed(2)} / $${(ai.budgetCents / 100).toFixed(0)} budget`, "this month"],
           ].map(([k, v, sub]) => (
-            <div key={k} className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+            <div key={k} className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 light:border-indigo-950/10 light:bg-white light:shadow-sm">
               <p className="text-xs text-zinc-500">{k}</p>
-              <p className="mt-1 text-xl font-semibold text-white">{v}</p>
-              <p className="mt-0.5 text-[11px] text-zinc-600">{sub}</p>
+              <p className="mt-1 text-xl font-semibold text-white light:text-zinc-900">{v}</p>
+              <p className="mt-0.5 text-[11px] text-zinc-600 light:text-zinc-400">{sub}</p>
             </div>
           ))}
         </div>

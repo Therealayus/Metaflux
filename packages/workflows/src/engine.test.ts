@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { WorkflowDefinition } from "@metaflux/types";
+import type { WorkflowDefinition } from "@socialflux/types";
 import {
   extractEventText,
   runWorkflow,

@@ -1,4 +1,4 @@
-import type { NormalizedMetaError } from "@metaflux/meta";
+import type { NormalizedMetaError } from "@socialflux/meta";
 
 export type Certainty = "confirmed" | "probable" | "unknown";
 
@@ -85,6 +85,6 @@ export function buildDiagnosis(input: {
     certainty: retryable ? "probable" : "unknown",
     evidence,
     impact,
-    recommendedFix: "MetaFlux retries automatically. If it persists, inspect the connection and event history.",
+    recommendedFix: "SocialFlux retries automatically. If it persists, inspect the connection and event history.",
   };
 }

@@ -32,37 +32,37 @@ importers:
       '@fastify/rate-limit':
         specifier: ^10.2.0
         version: 10.3.0
-      '@metaflux/ai':
+      '@socialflux/ai':
         specifier: workspace:*
         version: link:../../packages/ai
-      '@metaflux/auth':
+      '@socialflux/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@metaflux/billing':
+      '@socialflux/billing':
         specifier: workspace:*
         version: link:../../packages/billing
-      '@metaflux/config':
+      '@socialflux/config':
         specifier: workspace:*
         version: link:../../packages/config
-      '@metaflux/database':
+      '@socialflux/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@metaflux/meta':
+      '@socialflux/meta':
         specifier: workspace:*
         version: link:../../packages/meta
-      '@metaflux/observability':
+      '@socialflux/observability':
         specifier: workspace:*
         version: link:../../packages/observability
-      '@metaflux/queues':
+      '@socialflux/queues':
         specifier: workspace:*
         version: link:../../packages/queues
-      '@metaflux/security':
+      '@socialflux/security':
         specifier: workspace:*
         version: link:../../packages/security
-      '@metaflux/types':
+      '@socialflux/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@metaflux/workflows':
+      '@socialflux/workflows':
         specifier: workspace:*
         version: link:../../packages/workflows
       fastify:
@@ -96,7 +96,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@metaflux/ui':
+      '@socialflux/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       '@xyflow/react':
@@ -154,28 +154,28 @@ importers:
 
   apps/worker:
     dependencies:
-      '@metaflux/ai':
+      '@socialflux/ai':
         specifier: workspace:*
         version: link:../../packages/ai
-      '@metaflux/billing':
+      '@socialflux/billing':
         specifier: workspace:*
         version: link:../../packages/billing
-      '@metaflux/database':
+      '@socialflux/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@metaflux/meta':
+      '@socialflux/meta':
         specifier: workspace:*
         version: link:../../packages/meta
-      '@metaflux/observability':
+      '@socialflux/observability':
         specifier: workspace:*
         version: link:../../packages/observability
-      '@metaflux/queues':
+      '@socialflux/queues':
         specifier: workspace:*
         version: link:../../packages/queues
-      '@metaflux/security':
+      '@socialflux/security':
         specifier: workspace:*
         version: link:../../packages/security
-      '@metaflux/workflows':
+      '@socialflux/workflows':
         specifier: workspace:*
         version: link:../../packages/workflows
     devDependencies:
@@ -197,10 +197,10 @@ importers:
 
   packages/ai:
     dependencies:
-      '@metaflux/meta':
+      '@socialflux/meta':
         specifier: workspace:*
         version: link:../meta
-      '@metaflux/types':
+      '@socialflux/types':
         specifier: workspace:*
         version: link:../types
       zod:
@@ -219,7 +219,7 @@ importers:
 
   packages/auth:
     dependencies:
-      '@metaflux/types':
+      '@socialflux/types':
         specifier: workspace:*
         version: link:../types
     devDependencies:
@@ -235,10 +235,10 @@ importers:
 
   packages/billing:
     dependencies:
-      '@metaflux/ai':
+      '@socialflux/ai':
         specifier: workspace:*
         version: link:../ai
-      '@metaflux/database':
+      '@socialflux/database':
         specifier: workspace:*
         version: link:../database
     devDependencies:
@@ -292,7 +292,7 @@ importers:
 
   packages/meta:
     dependencies:
-      '@metaflux/types':
+      '@socialflux/types':
         specifier: workspace:*
         version: link:../types
     devDependencies:
@@ -386,10 +386,10 @@ importers:
 
   packages/workflows:
     dependencies:
-      '@metaflux/security':
+      '@socialflux/security':
         specifier: workspace:*
         version: link:../security
-      '@metaflux/types':
+      '@socialflux/types':
         specifier: workspace:*
         version: link:../types
       zod:

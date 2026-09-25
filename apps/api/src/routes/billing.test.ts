@@ -1,7 +1,7 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { __resetQueueDriverForTests } from "@metaflux/queues";
-import { __resetStoreForTests, getStore } from "@metaflux/database";
+import { __resetQueueDriverForTests } from "@socialflux/queues";
+import { __resetStoreForTests, getStore } from "@socialflux/database";
 import { buildServer } from "../server.js";
 
 const ORG = "org_bill";

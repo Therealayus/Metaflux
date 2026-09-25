@@ -1,5 +1,5 @@
-import { requireRole } from "@metaflux/auth";
-import { getStore } from "@metaflux/database";
+import { requireRole } from "@socialflux/auth";
+import { getStore } from "@socialflux/database";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { requestId, requireTenant, sendError } from "../tenant.js";

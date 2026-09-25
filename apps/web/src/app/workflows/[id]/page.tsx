@@ -14,6 +14,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError, Page } from "@/lib/api";
+import { toast } from "@/components/toaster";
 
 type WfNode = Node<Record<string, unknown>>;
 type Status = "draft" | "active" | "paused" | "archived";
@@ -74,7 +75,6 @@ export default function WorkflowBuilderPage({ params }: { params: { id: string }
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selected, setSelected] = useState<WfNode | null>(null);
   const [executions, setExecutions] = useState<Execution[]>([]);
-  const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -113,7 +113,6 @@ export default function WorkflowBuilderPage({ params }: { params: { id: string }
   async function save() {
     if (!wf) return;
     setError(null);
-    setNotice(null);
     const definition = {
       nodes: nodes.map((n) => ({
         id: n.id,
@@ -129,9 +128,11 @@ export default function WorkflowBuilderPage({ params }: { params: { id: string }
         body: JSON.stringify({ definition }),
       });
       setWf(updated);
-      setNotice("Saved and validated.");
+      toast.success("Workflow saved", "Definition validated.");
     } catch (e) {
-      setError(e instanceof ApiError ? `${e.message}${e.code === "confirmation_required" ? " (sends need confirmation — activate from Automations)" : ""}` : "Save failed");
+      const msg = e instanceof ApiError ? `${e.message}${e.code === "confirmation_required" ? " (sends need confirmation — activate from Automations)" : ""}` : "Save failed";
+      setError(msg);
+      toast.error("Save failed", msg);
     }
   }
 
@@ -145,9 +146,11 @@ export default function WorkflowBuilderPage({ params }: { params: { id: string }
         confirm: true,
       });
       setWf(updated);
-      setNotice(`Workflow ${status}.`);
+      toast.success(`Workflow ${status}`);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Status change failed");
+      const msg = e instanceof ApiError ? e.message : "Status change failed";
+      setError(msg);
+      toast.error("Status change failed", msg);
     }
   }
 
@@ -158,39 +161,38 @@ export default function WorkflowBuilderPage({ params }: { params: { id: string }
     setNodes((ns) => ns.map((n) => (n.id === next.id ? next : n)));
   }
 
-  if (error && !wf) return <p className="py-10 text-center text-sm text-red-300">{error}</p>;
+  if (error && !wf) return <p className="py-10 text-center text-sm text-red-300 light:text-red-600">{error}</p>;
   if (!wf) return <p className="py-10 text-center text-sm text-zinc-500">Loading workflow…</p>;
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-white">{wf.name}</h1>
-          <p className="text-xs text-zinc-500">Status: <span className="text-zinc-200">{wf.status}</span> · drag nodes, connect edges, click a node to configure</p>
+          <h1 className="text-xl font-semibold text-white light:text-zinc-900">{wf.name}</h1>
+          <p className="text-xs text-zinc-500">Status: <span className="text-zinc-200 light:text-zinc-800">{wf.status}</span> · drag nodes, connect edges, click a node to configure</p>
         </div>
         <div className="flex gap-2">
           {wf.status !== "active" ? (
             <button onClick={() => void setStatus("active")} className="h-9 rounded-lg bg-indigo-500 px-4 text-sm font-medium text-white hover:bg-indigo-400">Activate</button>
           ) : (
-            <button onClick={() => void setStatus("paused")} className="h-9 rounded-lg border border-white/10 px-4 text-sm text-zinc-200 hover:bg-white/5">Pause</button>
+            <button onClick={() => void setStatus("paused")} className="h-9 rounded-lg border border-white/10 px-4 text-sm text-zinc-200 hover:bg-white/5 light:border-indigo-950/15 light:bg-white light:text-zinc-700 light:shadow-sm">Pause</button>
           )}
-          <button onClick={() => void save()} className="h-9 rounded-lg border border-white/10 px-4 text-sm text-zinc-200 hover:bg-white/5">Save</button>
+          <button onClick={() => void save()} className="h-9 rounded-lg border border-white/10 px-4 text-sm text-zinc-200 hover:bg-white/5 light:border-indigo-950/15 light:bg-white light:text-zinc-700 light:shadow-sm">Save</button>
         </div>
       </div>
 
-      {notice ? <p className="rounded-lg border border-emerald-400/25 bg-emerald-400/5 px-3 py-2 text-xs text-emerald-200">{notice}</p> : null}
-      {error ? <p className="rounded-lg border border-red-400/25 bg-red-400/5 px-3 py-2 text-xs text-red-200">{error}</p> : null}
+      {error && !wf ? <p className="rounded-lg border border-red-400/25 bg-red-400/5 px-3 py-2 text-xs text-red-200 light:text-red-700">{error}</p> : null}
 
       <div className="flex flex-wrap gap-1.5">
         {PALETTE.map((t) => (
-          <button key={t} onClick={() => addNode(t)} className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 font-mono text-[11px] text-zinc-300 hover:bg-white/[0.07]">
+          <button key={t} onClick={() => addNode(t)} className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 font-mono text-[11px] text-zinc-300 hover:bg-white/[0.07] light:border-indigo-950/15 light:bg-white light:text-zinc-600 light:shadow-sm light:hover:bg-zinc-50">
             + {t}
           </button>
         ))}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
-        <div className="h-[480px] overflow-hidden rounded-2xl border border-white/10 bg-ink-900">
+        <div className="h-[480px] overflow-hidden rounded-2xl border border-white/10 bg-ink-900 light:border-indigo-950/20 light:shadow-[0_20px_60px_-24px_rgba(79,70,229,0.4)]">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -207,20 +209,20 @@ export default function WorkflowBuilderPage({ params }: { params: { id: string }
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 light:border-indigo-950/10 light:bg-white light:shadow-sm">
             <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">Selected node</p>
             {!selected ? (
               <p className="mt-2 text-xs text-zinc-500">Click a node to edit its label and config. Config is a JSON object — templates like {"{{event.senderId}}"} are supported.</p>
             ) : (
               <div className="mt-2 space-y-2">
-                <label className="block text-xs text-zinc-400">Label
+                <label className="block text-xs text-zinc-400 light:text-zinc-500">Label
                   <input
                     value={String(selected.data.label ?? "")}
                     onChange={(e) => updateSelected({ label: e.target.value })}
-                    className="mt-1 h-9 w-full rounded-lg border border-white/10 bg-black/40 px-2 font-mono text-xs text-zinc-100"
+                    className="mt-1 h-9 w-full rounded-lg border border-white/10 bg-black/40 px-2 font-mono text-xs text-zinc-100 light:border-indigo-950/15 light:bg-white light:text-zinc-900 light:shadow-sm"
                   />
                 </label>
-                <label className="block text-xs text-zinc-400">Config (JSON)
+                <label className="block text-xs text-zinc-400 light:text-zinc-500">Config (JSON)
                   <textarea
                     rows={10}
                     value={JSON.stringify(selected.data.config ?? {}, null, 2)}
@@ -231,7 +233,7 @@ export default function WorkflowBuilderPage({ params }: { params: { id: string }
                         // Allow mid-typing invalid JSON; validated on save.
                       }
                     }}
-                    className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 p-2 font-mono text-[11px] text-zinc-100"
+                    className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 p-2 font-mono text-[11px] text-zinc-100 light:border-indigo-950/15 light:bg-white light:text-zinc-900 light:shadow-sm"
                   />
                 </label>
                 <button
@@ -240,7 +242,7 @@ export default function WorkflowBuilderPage({ params }: { params: { id: string }
                     setEdges((es) => es.filter((e) => e.source !== selected.id && e.target !== selected.id));
                     setSelected(null);
                   }}
-                  className="h-8 rounded-lg border border-red-400/30 px-3 text-xs text-red-200 hover:bg-red-400/10"
+                  className="h-8 rounded-lg border border-red-400/30 px-3 text-xs text-red-200 hover:bg-red-400/10 light:text-red-600"
                 >
                   Delete node
                 </button>
@@ -248,16 +250,16 @@ export default function WorkflowBuilderPage({ params }: { params: { id: string }
             )}
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 light:border-indigo-950/10 light:bg-white light:shadow-sm">
             <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">Recent executions</p>
             {executions.length === 0 ? (
               <p className="mt-2 text-xs text-zinc-500">No runs yet. Activate the workflow and send a matching event.</p>
             ) : (
               <ul className="mt-2 space-y-1.5">
                 {executions.map((e) => (
-                  <li key={e.id} className="flex items-center justify-between font-mono text-[11px] text-zinc-400">
+                  <li key={e.id} className="flex items-center justify-between font-mono text-[11px] text-zinc-400 light:text-zinc-500">
                     <span>{e.id.slice(0, 14)}…</span>
-                    <span className={e.status === "succeeded" ? "text-emerald-300" : e.status === "failed" ? "text-red-300" : "text-amber-300"}>{e.status}</span>
+                    <span className={e.status === "succeeded" ? "text-emerald-300 light:text-emerald-700" : e.status === "failed" ? "text-red-300 light:text-red-600" : "text-amber-300 light:text-amber-600"}>{e.status}</span>
                   </li>
                 ))}
               </ul>

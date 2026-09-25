@@ -1,6 +1,6 @@
-import { getStore, type EventRecord, type Store } from "@metaflux/database";
-import { childLogger } from "@metaflux/observability";
-import { metrics } from "@metaflux/observability";
+import { getStore, type EventRecord, type Store } from "@socialflux/database";
+import { childLogger } from "@socialflux/observability";
+import { metrics } from "@socialflux/observability";
 import {
   backoffMs,
   getQueueDriver,
@@ -9,7 +9,7 @@ import {
   type JobName,
   type QueueDriver,
   type QueuedJob,
-} from "@metaflux/queues";
+} from "@socialflux/queues";
 
 export interface HandlerResult {
   status: "succeeded" | "retry" | "dead_letter";
@@ -129,7 +129,7 @@ async function handleOne(driver: QueueDriver, queued: QueuedJob, store: Store): 
 /** Process a single dequeue batch. Exported for tests. */
 export async function processOnce(driver: QueueDriver, opts?: { group?: string; consumer?: string }): Promise<number> {
   const store = await getStore();
-  const batch = await driver.dequeue(opts?.group ?? "metaflux", opts?.consumer ?? "worker-1", 250);
+  const batch = await driver.dequeue(opts?.group ?? "socialflux", opts?.consumer ?? "worker-1", 250);
   const concurrency = Math.max(Number(process.env.QUEUE_CONCURRENCY ?? 5), 1);
   for (let i = 0; i < batch.length; i += concurrency) {
     await Promise.all(batch.slice(i, i + concurrency).map((q) => handleOne(driver, q, store)));
@@ -145,11 +145,11 @@ export interface RunLoopOpts {
 
 /** Long-running worker loop with graceful shutdown. Never throws. */
 export async function runLoop(opts: RunLoopOpts = {}): Promise<void> {
-  const { getQueueDriver } = await import("@metaflux/queues");
+  const { getQueueDriver } = await import("@socialflux/queues");
   const driver = opts.driver ?? getQueueDriver();
   ensureLoopHandlers();
   const log = childLogger({ operation: "worker-loop" });
-  log.info({ group: opts.group ?? "metaflux", msg: "worker loop started" });
+  log.info({ group: opts.group ?? "socialflux", msg: "worker loop started" });
   let stopped = false;
   const stop = () => {
     stopped = true;

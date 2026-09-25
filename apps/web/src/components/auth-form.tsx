@@ -3,20 +3,24 @@
 import Link from "next/link";
 import { useState } from "react";
 import { FluxMark } from "@/components/flux-mark";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { API_URL, setSession } from "@/lib/api";
 import { clearSessionCache } from "@/lib/use-session";
 
 function Shell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-ink-950 px-5 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-ink-950 px-5 py-12 light:bg-[#ECEEF7]">
+      <div className="fixed right-5 top-5">
+        <ThemeToggle size={34} />
+      </div>
       <div className="w-full max-w-md">
         <Link href="/" className="flex items-center gap-2.5">
           <FluxMark />
-          <span className="text-sm font-semibold text-white">MetaFlux</span>
+          <span className="text-sm font-semibold text-white light:text-zinc-900">SocialFlux</span>
         </Link>
-        <h1 className="mt-8 text-2xl font-semibold tracking-tight text-white">{title}</h1>
-        <p className="mt-2 text-sm text-zinc-400">{subtitle}</p>
-        <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.02] p-6">{children}</div>
+        <h1 className="mt-8 text-2xl font-semibold tracking-tight text-white light:text-zinc-900">{title}</h1>
+        <p className="mt-2 text-sm text-zinc-400 light:text-zinc-500">{subtitle}</p>
+        <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.02] p-6 light:border-indigo-950/10 light:bg-white light:shadow-[0_20px_60px_-20px_rgba(79,70,229,0.25)]">{children}</div>
       </div>
     </div>
   );
@@ -114,59 +118,59 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" | "reset" }) {
       <form onSubmit={(e) => void submit(e)} className="space-y-4" noValidate>
         {mode === "signup" ? (
           <label className="block">
-            <span className="mb-1.5 block text-xs font-medium text-zinc-300">Name</span>
+            <span className="mb-1.5 block text-xs font-medium text-zinc-300 light:text-zinc-600">Name</span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ada Lovelace"
-              className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400/60 focus:outline-none"
+              className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400/60 focus:outline-none light:border-indigo-950/15 light:bg-white light:text-zinc-900 light:placeholder:text-zinc-400 light:shadow-sm"
             />
           </label>
         ) : null}
         <label className="block">
-          <span className="mb-1.5 block text-xs font-medium text-zinc-300">Work email</span>
+          <span className="mb-1.5 block text-xs font-medium text-zinc-300 light:text-zinc-600">Work email</span>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@company.com"
-            className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400/60 focus:outline-none"
+            className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400/60 focus:outline-none light:border-indigo-950/15 light:bg-white light:text-zinc-900 light:placeholder:text-zinc-400 light:shadow-sm"
           />
         </label>
         {mode !== "reset" ? (
           <label className="block">
-            <span className="mb-1.5 block text-xs font-medium text-zinc-300">Password</span>
+            <span className="mb-1.5 block text-xs font-medium text-zinc-300 light:text-zinc-600">Password</span>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400/60 focus:outline-none"
+              className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-400/60 focus:outline-none light:border-indigo-950/15 light:bg-white light:text-zinc-900 light:placeholder:text-zinc-400 light:shadow-sm"
             />
           </label>
         ) : null}
-        {error ? <p className="text-xs text-red-300">{error}</p> : null}
-        {notice ? <p className="text-xs text-emerald-300">{notice}</p> : null}
+        {error ? <p className="text-xs text-red-300 light:text-red-600">{error}</p> : null}
+        {notice ? <p className="text-xs text-emerald-300 light:text-emerald-700">{notice}</p> : null}
         <button type="submit" disabled={busy} className="h-10 w-full rounded-lg bg-indigo-500 text-sm font-medium text-white hover:bg-indigo-400 disabled:opacity-60">
           {busy ? "Working…" : mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link"}
         </button>
       </form>
       {mode !== "reset" ? (
         <div className="mt-4 grid grid-cols-2 gap-2">
-          <button onClick={() => void oauth("google")} className="h-10 rounded-lg border border-white/10 bg-white/[0.03] text-sm text-zinc-200 hover:bg-white/[0.06]">Google</button>
-          <button onClick={() => void oauth("github")} className="h-10 rounded-lg border border-white/10 bg-white/[0.03] text-sm text-zinc-200 hover:bg-white/[0.06]">GitHub</button>
+          <button onClick={() => void oauth("google")} className="h-10 rounded-lg border border-white/10 bg-white/[0.03] text-sm text-zinc-200 hover:bg-white/[0.06] light:border-indigo-950/15 light:bg-white light:text-zinc-700 light:shadow-sm light:hover:bg-zinc-50">Google</button>
+          <button onClick={() => void oauth("github")} className="h-10 rounded-lg border border-white/10 bg-white/[0.03] text-sm text-zinc-200 hover:bg-white/[0.06] light:border-indigo-950/15 light:bg-white light:text-zinc-700 light:shadow-sm light:hover:bg-zinc-50">GitHub</button>
         </div>
       ) : null}
       <div className="mt-5 flex justify-between text-xs text-zinc-500">
         {mode === "signin" ? (
           <>
-            <Link href="/signup" className="hover:text-zinc-200">New here? Sign up</Link>
-            <Link href="/reset" className="hover:text-zinc-200">Forgot password?</Link>
+            <Link href="/signup" className="hover:text-zinc-200 light:hover:text-zinc-900">New here? Sign up</Link>
+            <Link href="/reset" className="hover:text-zinc-200 light:hover:text-zinc-900">Forgot password?</Link>
           </>
         ) : mode === "signup" ? (
-          <Link href="/signin" className="hover:text-zinc-200">Have an account? Sign in</Link>
+          <Link href="/signin" className="hover:text-zinc-200 light:hover:text-zinc-900">Have an account? Sign in</Link>
         ) : (
-          <Link href="/signin" className="hover:text-zinc-200">Back to sign in</Link>
+          <Link href="/signin" className="hover:text-zinc-200 light:hover:text-zinc-900">Back to sign in</Link>
         )}
       </div>
     </Shell>

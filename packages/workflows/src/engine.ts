@@ -1,5 +1,5 @@
-import { assertSafeHttpUrl } from "@metaflux/security";
-import type { WorkflowDefinition, WorkflowEdge, WorkflowNode } from "@metaflux/types";
+import { assertSafeHttpUrl } from "@socialflux/security";
+import type { WorkflowDefinition, WorkflowEdge, WorkflowNode } from "@socialflux/types";
 
 export type WorkflowStatus = "draft" | "active" | "paused" | "archived";
 

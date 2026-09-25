@@ -1,5 +1,5 @@
-import { __resetStoreForTests, getStore } from "@metaflux/database";
-import { __resetQueueDriverForTests, MemoryQueueDriver, getQueueDriver, newJob } from "@metaflux/queues";
+import { __resetStoreForTests, getStore } from "@socialflux/database";
+import { __resetQueueDriverForTests, MemoryQueueDriver, getQueueDriver, newJob } from "@socialflux/queues";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   clearHandlersForTests,

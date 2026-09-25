@@ -94,7 +94,7 @@ export default function HomePage() {
         title={greeting()}
         body={
           connections.length === 0
-            ? "Connect your first Meta account and MetaFlux configures the rest."
+            ? "Connect your first Meta account and SocialFlux configures the rest."
             : healthy
               ? "Your Meta environment is healthy."
               : `${attention.length} connection${attention.length === 1 ? "" : "s"} need${attention.length === 1 ? "s" : ""} attention.`
@@ -110,7 +110,7 @@ export default function HomePage() {
       {connections.length === 0 ? (
         <EmptyBlock
           title="Your Meta workspace is empty"
-          body="Connect Instagram, WhatsApp or Facebook and let MetaFlux discover your assets, permissions and webhooks."
+          body="Connect Instagram, WhatsApp or Facebook and let SocialFlux discover your assets, permissions and webhooks."
           action={<Link href="/connections" className="inline-flex h-10 items-center rounded-lg bg-indigo-500 px-5 text-sm font-medium text-white hover:bg-indigo-400">Connect Meta</Link>}
         />
       ) : (
@@ -118,10 +118,10 @@ export default function HomePage() {
           {connections.map((c) => {
             const ok = c.status === "connected";
             return (
-              <Link key={c.id} href="/connections" className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 hover:bg-white/[0.04]">
+              <Link key={c.id} href="/connections" className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 hover:bg-white/[0.04] light:border-indigo-950/10 light:bg-white light:shadow-sm light:hover:bg-zinc-50">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-zinc-100">{PRODUCT_LABEL[c.product] ?? c.product}</p>
-                  <span className={`inline-flex items-center gap-1.5 text-xs ${ok ? "text-emerald-300" : "text-amber-300"}`}>
+                  <p className="text-sm font-medium text-zinc-100 light:text-zinc-800">{PRODUCT_LABEL[c.product] ?? c.product}</p>
+                  <span className={`inline-flex items-center gap-1.5 text-xs ${ok ? "text-emerald-300 light:text-emerald-700" : "text-amber-300 light:text-amber-600"}`}>
                     <span className={`h-1.5 w-1.5 rounded-full ${ok ? "bg-emerald-400" : "bg-amber-400"}`} />
                     {ok ? "Connected" : c.status.replace(/_/g, " ")}
                   </span>
@@ -136,37 +136,37 @@ export default function HomePage() {
       )}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-          <p className="text-sm font-medium text-white">Automations</p>
-          <p className="mt-1 text-2xl font-semibold text-white">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 light:border-indigo-950/10 light:bg-white light:shadow-sm">
+          <p className="text-sm font-medium text-white light:text-zinc-900">Automations</p>
+          <p className="mt-1 text-2xl font-semibold text-white light:text-zinc-900">
             {active} <span className="text-sm font-normal text-zinc-500">active{paused > 0 ? ` · ${paused} paused` : ""}</span>
           </p>
-          <Link href="/automations" className="mt-2 inline-block text-xs text-indigo-300 hover:text-indigo-200">View automations →</Link>
+          <Link href="/automations" className="mt-2 inline-block text-xs text-indigo-300 hover:text-indigo-200 light:text-indigo-600 light:hover:text-indigo-500">View automations →</Link>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-          <p className="text-sm font-medium text-white">Last 30 days</p>
-          <p className="mt-1 text-2xl font-semibold text-white">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 light:border-indigo-950/10 light:bg-white light:shadow-sm">
+          <p className="text-sm font-medium text-white light:text-zinc-900">Last 30 days</p>
+          <p className="mt-1 text-2xl font-semibold text-white light:text-zinc-900">
             {usage.events.toLocaleString()} <span className="text-sm font-normal text-zinc-500">events · {usage.executions.toLocaleString()} executions · {usage.apiRequests.toLocaleString()} API calls</span>
           </p>
-          <Link href="/analytics" className="mt-2 inline-block text-xs text-indigo-300 hover:text-indigo-200">View analytics →</Link>
+          <Link href="/analytics" className="mt-2 inline-block text-xs text-indigo-300 hover:text-indigo-200 light:text-indigo-600 light:hover:text-indigo-500">View analytics →</Link>
         </div>
       </div>
 
       {attention.length > 0 ? (
-        <div className="mt-4 rounded-2xl border border-amber-400/25 bg-amber-400/[0.04] p-5">
-          <p className="text-sm font-medium text-amber-200">AI recommendation</p>
-          <p className="mt-1 text-sm text-zinc-300">
+        <div className="mt-4 rounded-2xl border border-amber-400/25 bg-amber-400/[0.04] p-5 light:bg-amber-400/10 light:shadow-sm">
+          <p className="text-sm font-medium text-amber-200 light:text-amber-800">AI recommendation</p>
+          <p className="mt-1 text-sm text-zinc-300 light:text-zinc-600">
             {attention.map((c) => PRODUCT_LABEL[c.product] ?? c.product).join(", ")} need{(attention.length === 1 ? "s" : "")} attention
             {failedEvents.length > 0 ? ` · ${failedEvents.length} recent event${failedEvents.length === 1 ? "" : "s"} failed` : ""}.
             Reconnect to restore automations.
           </p>
-          <Link href="/health" className="mt-3 inline-flex h-9 items-center rounded-lg border border-amber-400/30 px-4 text-sm text-amber-200 hover:bg-amber-400/10">
+          <Link href="/health" className="mt-3 inline-flex h-9 items-center rounded-lg border border-amber-400/30 px-4 text-sm text-amber-200 hover:bg-amber-400/10 light:text-amber-800">
             Fix now
           </Link>
         </div>
       ) : null}
       {usingDevFallback ? (
-        <p className="mt-4 text-xs text-zinc-600">Local dev mode — <Link href="/signin" className="underline hover:text-zinc-400">sign in</Link> to see your workspace.</p>
+        <p className="mt-4 text-xs text-zinc-600 light:text-zinc-500">Local dev mode — <Link href="/signin" className="underline hover:text-zinc-400 light:hover:text-zinc-700">sign in</Link> to see your workspace.</p>
       ) : null}
     </AppShell>
   );

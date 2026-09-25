@@ -6,6 +6,10 @@
   color-scheme: dark;
 }
 
+:root.light {
+  color-scheme: light;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -17,8 +21,32 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.light body {
+  background: #eef0f8;
+  color: #27272a;
+}
+
 ::selection {
   background: rgba(99, 102, 241, 0.35);
+}
+
+/* Futuristic theme shift: cross-fade + circular reveal driven by the toggle. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+.theme-shift,
+.theme-shift *,
+.theme-shift *::before,
+.theme-shift *::after {
+  transition:
+    background-color 0.35s ease,
+    border-color 0.35s ease,
+    color 0.35s ease,
+    fill 0.35s ease,
+    stroke 0.35s ease !important;
 }
 
 .bg-grid {
@@ -27,4 +55,10 @@ body {
     linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
   background-size: 44px 44px;
   mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, black 40%, transparent 100%);
+}
+
+.light .bg-grid {
+  background-image:
+    linear-gradient(rgba(67, 56, 202, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(67, 56, 202, 0.07) 1px, transparent 1px);
 }

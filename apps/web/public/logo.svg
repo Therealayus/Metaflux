@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 40">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="32" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#818CF8"/>
+      <stop offset="1" stop-color="#4F46E5"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(4,4)">
+    <rect x="0" y="0" width="30" height="30" rx="8" fill="url(#g)"/>
+    <path d="M8 19.5c2.5 0 2.5-9 5-9s2.5 9 5 9 2.5-9 4-9" stroke="#fff" stroke-width="2.2" stroke-linecap="round" fill="none" transform="translate(1,1)"/>
+    <circle cx="9" cy="20.5" r="1.7" fill="#fff"/>
+  </g>
+  <text x="44" y="26" font-family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="19" font-weight="650" letter-spacing="-0.5" fill="#fff">SocialFlux</text>
+</svg>

@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
-import { __resetStoreForTests, getStore } from "@metaflux/database";
-import { __resetQueueDriverForTests, getQueueDriver } from "@metaflux/queues";
-import { encryptToken } from "@metaflux/security";
+import { __resetStoreForTests, getStore } from "@socialflux/database";
+import { __resetQueueDriverForTests, getQueueDriver } from "@socialflux/queues";
+import { encryptToken } from "@socialflux/security";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerAutomationHandlers } from "./automation.js";
 import { clearHandlersForTests, ensureLoopHandlers, processOnce, registerCoreHandlersPublic } from "./processor.js";
@@ -82,7 +82,7 @@ describe("automation", () => {
       return jsonResponse({ messages: [{ id: "wamid_abc" }] });
     });
     const { matchAndEnqueue } = await import("./automation.js");
-    const { newJob } = await import("@metaflux/queues");
+    const { newJob } = await import("@socialflux/queues");
 
     // The production loop must not clobber the automation override (regression):
     // matching happens through processOnce, not a direct call.

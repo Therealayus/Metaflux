@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CapabilityRegistry, DEFAULT_CAPABILITIES } from "@metaflux/meta";
+import { CapabilityRegistry, DEFAULT_CAPABILITIES } from "@socialflux/meta";
 
 export * from "./providers.js";
 export * from "./budget.js";
@@ -95,7 +95,7 @@ export function validatePlan(
   for (const rc of plan.requiredCapabilities) {
     const cap = registry.get(rc.product as "instagram" | "whatsapp" | "facebook", rc.capability);
     if (!cap) {
-      missing.push(`Unsupported capability: ${rc.product}:${rc.capability}. MetaFlux cannot configure it.`);
+      missing.push(`Unsupported capability: ${rc.product}:${rc.capability}. SocialFlux cannot configure it.`);
       continue;
     }
     for (const perm of cap.requiredPermissions) requiredPermissions.add(perm);

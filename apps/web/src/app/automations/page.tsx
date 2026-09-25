@@ -49,18 +49,18 @@ export default function AutomationsPage() {
       ) : items.length === 0 ? (
         <EmptyBlock
           title="No automations yet"
-          body="Describe what you want in plain language and MetaFlux plans the integration, permissions and workflow."
+          body="Describe what you want in plain language and SocialFlux plans the integration, permissions and workflow."
           action={<Link href="/command" className="inline-flex h-10 items-center rounded-lg bg-indigo-500 px-5 text-sm font-medium text-white hover:bg-indigo-400">Build with AI</Link>}
         />
       ) : (
         <div className="space-y-3">
           {items.map((w) => (
-            <Link key={w.id} href={`/workflows/${w.id}`} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4 hover:bg-white/[0.04]">
+            <Link key={w.id} href={`/workflows/${w.id}`} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4 hover:bg-white/[0.04] light:border-indigo-950/10 light:bg-white light:shadow-sm light:hover:bg-zinc-50">
               <div>
-                <p className="text-sm font-medium text-white">{w.name}</p>
+                <p className="text-sm font-medium text-white light:text-zinc-900">{w.name}</p>
                 <p className="mt-0.5 font-mono text-xs text-zinc-500">{w.definition.nodes.map((n) => n.type).join(" → ")}</p>
               </div>
-              <span className={`rounded-full px-2.5 py-1 text-xs ${w.status === "active" ? "bg-emerald-400/10 text-emerald-300" : w.status === "paused" ? "bg-amber-400/10 text-amber-300" : "bg-white/5 text-zinc-400"}`}>
+              <span className={`rounded-full px-2.5 py-1 text-xs ${w.status === "active" ? "bg-emerald-400/10 text-emerald-300 light:bg-emerald-500/10 light:text-emerald-700" : w.status === "paused" ? "bg-amber-400/10 text-amber-300 light:bg-amber-400/15 light:text-amber-700" : "bg-white/5 text-zinc-400 light:bg-zinc-900/[0.05] light:text-zinc-500"}`}>
                 {w.status}
               </span>
             </Link>

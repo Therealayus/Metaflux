@@ -1,8 +1,8 @@
 import { randomBytes } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { __resetQueueDriverForTests } from "@metaflux/queues";
-import { __resetStoreForTests, getStore } from "@metaflux/database";
-import { encryptToken } from "@metaflux/security";
+import { __resetQueueDriverForTests } from "@socialflux/queues";
+import { __resetStoreForTests, getStore } from "@socialflux/database";
+import { encryptToken } from "@socialflux/security";
 import { buildServer } from "../server.js";
 
 const HEADERS = { "x-user-id": "dev", "x-org-id": "org_dev" };

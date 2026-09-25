@@ -1,4 +1,4 @@
-import type { MetaProduct } from "@metaflux/types";
+import type { MetaProduct } from "@socialflux/types";
 
 export type { MetaProduct };
 

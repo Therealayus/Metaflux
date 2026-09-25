@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { __resetQueueDriverForTests, getQueueDriver } from "@metaflux/queues";
-import { __resetStoreForTests, getStore } from "@metaflux/database";
+import { __resetQueueDriverForTests, getQueueDriver } from "@socialflux/queues";
+import { __resetStoreForTests, getStore } from "@socialflux/database";
 import { buildServer } from "../server.js";
 
 const ORG = "org_evt";

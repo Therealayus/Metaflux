@@ -1,8 +1,8 @@
-import { getCache, listFlags, setFlag, deleteFlag } from "@metaflux/database";
-import { PLANS } from "@metaflux/billing";
-import { metrics } from "@metaflux/observability";
-import { getQueueDriver } from "@metaflux/queues";
-import { safeEqual } from "@metaflux/security";
+import { getCache, listFlags, setFlag, deleteFlag } from "@socialflux/database";
+import { PLANS } from "@socialflux/billing";
+import { metrics } from "@socialflux/observability";
+import { getQueueDriver } from "@socialflux/queues";
+import { safeEqual } from "@socialflux/security";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { requestId, sendError } from "../tenant.js";

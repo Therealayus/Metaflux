@@ -1,4 +1,4 @@
-import type { MetaProduct } from "@metaflux/types";
+import type { MetaProduct } from "@socialflux/types";
 
 export interface PermissionDefinition {
   name: string;
@@ -41,56 +41,56 @@ export const DEFAULT_PERMISSIONS: PermissionDefinition[] = [
   {
     name: "instagram_basic",
     product: "instagram",
-    why: "Lets MetaFlux identify your Instagram Business Account and read basic profile and media data. Without it, automations cannot tell which account an event belongs to.",
+    why: "Lets SocialFlux identify your Instagram Business Account and read basic profile and media data. Without it, automations cannot tell which account an event belongs to.",
     reviewRequired: true,
     asset: "instagram_business_account",
   },
   {
     name: "instagram_manage_comments",
     product: "instagram",
-    why: "Lets MetaFlux receive Instagram comment events. Without it, automations cannot trigger when a customer comments.",
+    why: "Lets SocialFlux receive Instagram comment events. Without it, automations cannot trigger when a customer comments.",
     reviewRequired: true,
     asset: "instagram_business_account",
   },
   {
     name: "instagram_manage_messages",
     product: "instagram",
-    why: "Lets MetaFlux receive and send Instagram message events. Without it, DM automations cannot trigger or reply.",
+    why: "Lets SocialFlux receive and send Instagram message events. Without it, DM automations cannot trigger or reply.",
     reviewRequired: true,
     asset: "instagram_business_account",
   },
   {
     name: "read_insights",
     product: "instagram",
-    why: "Lets MetaFlux read reach and engagement metrics so health and analytics views can show performance.",
+    why: "Lets SocialFlux read reach and engagement metrics so health and analytics views can show performance.",
     reviewRequired: true,
     asset: "instagram_business_account",
   },
   {
     name: "whatsapp_business_messaging",
     product: "whatsapp",
-    why: "Lets MetaFlux send WhatsApp messages through your WhatsApp Business Account. Without it, WhatsApp steps in workflows cannot execute.",
+    why: "Lets SocialFlux send WhatsApp messages through your WhatsApp Business Account. Without it, WhatsApp steps in workflows cannot execute.",
     reviewRequired: true,
     asset: "whatsapp_business_account",
   },
   {
     name: "pages_read_engagement",
     product: "facebook",
-    why: "Lets MetaFlux read Page posts and comments so comment automations can trigger.",
+    why: "Lets SocialFlux read Page posts and comments so comment automations can trigger.",
     reviewRequired: true,
     asset: "facebook_page",
   },
   {
     name: "pages_manage_posts",
     product: "facebook",
-    why: "Lets MetaFlux publish or manage Page content where your workflow requires it.",
+    why: "Lets SocialFlux publish or manage Page content where your workflow requires it.",
     reviewRequired: true,
     asset: "facebook_page",
   },
   {
     name: "pages_messaging",
     product: "facebook",
-    why: "Lets MetaFlux receive and send Facebook Page messages for Messenger automations.",
+    why: "Lets SocialFlux receive and send Facebook Page messages for Messenger automations.",
     reviewRequired: true,
     asset: "facebook_page",
   },

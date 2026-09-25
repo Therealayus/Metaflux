@@ -13,21 +13,21 @@ import {
   validatePlan,
   type BudgetStore,
   type BudgetUsage,
-} from "@metaflux/ai";
+} from "@socialflux/ai";
 import {
   CapabilityRegistry,
   DEFAULT_CAPABILITIES,
   DEFAULT_PERMISSIONS,
   PermissionRegistry,
   normalizeMetaError,
-} from "@metaflux/meta";
+} from "@socialflux/meta";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { requireScope } from "@metaflux/auth";
-import { getCache, getStore, isEnabled } from "@metaflux/database";
-import type { Store } from "@metaflux/database";
-import { aiBudgetCents } from "@metaflux/billing";
-import { metrics } from "@metaflux/observability";
+import { requireScope } from "@socialflux/auth";
+import { getCache, getStore, isEnabled } from "@socialflux/database";
+import type { Store } from "@socialflux/database";
+import { aiBudgetCents } from "@socialflux/billing";
+import { metrics } from "@socialflux/observability";
 import { requestId, requireTenant, sendError } from "../tenant.js";
 
 const planBody = z.object({ prompt: z.string().min(3).max(2000) });

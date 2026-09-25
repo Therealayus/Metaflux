@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { api, ApiError } from "@/lib/api";
+import { toast } from "@/components/toaster";
 import { useSession } from "@/lib/use-session";
 
 interface Plan {
@@ -62,7 +63,9 @@ export default function CommandPage() {
     try {
       setPlan(await api<Plan>("/api/v1/ai/plan", { method: "POST", body: JSON.stringify({ prompt }) }));
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Planning failed");
+      const msg = e instanceof ApiError ? e.message : "Planning failed";
+      setError(msg);
+      toast.error("Planning failed", msg);
     } finally {
       setBusy(false);
     }
@@ -84,7 +87,9 @@ export default function CommandPage() {
       });
       window.location.href = `/workflows/${wf.id}`;
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Could not save draft");
+      const msg = e instanceof ApiError ? e.message : "Could not save draft";
+      setError(msg);
+      toast.error("Save failed", msg);
     } finally {
       setSaving(false);
     }
@@ -93,23 +98,23 @@ export default function CommandPage() {
   return (
     <AppShell>
       <PageHeader title="AI Command Center" body="Explain, diagnose, create, modify, inspect, recommend — execution always passes policy checks." />
-      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-        <label className="text-xs font-medium uppercase tracking-widest text-zinc-500" htmlFor="cmd">Ask MetaFlux anything</label>
+      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 light:border-indigo-950/10 light:bg-white light:shadow-sm">
+        <label className="text-xs font-medium uppercase tracking-widest text-zinc-500" htmlFor="cmd">Ask SocialFlux anything</label>
         <textarea
           id="cmd"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           rows={3}
-          className="mt-3 w-full rounded-xl border border-white/10 bg-black/40 p-3 text-sm text-zinc-100 focus:border-indigo-400/60 focus:outline-none"
+          className="mt-3 w-full rounded-xl border border-white/10 bg-black/40 p-3 text-sm text-zinc-100 focus:border-indigo-400/60 focus:outline-none light:border-indigo-950/15 light:bg-white light:text-zinc-900 light:shadow-sm"
         />
         <div className="mt-3 flex justify-end">
           <button onClick={() => void ask()} disabled={busy || prompt.trim().length < 3} className="h-10 rounded-lg bg-indigo-500 px-5 text-sm font-medium text-white hover:bg-indigo-400 disabled:opacity-50">
             {busy ? "Planning…" : "Ask AI"}
           </button>
         </div>
-        {error ? <p className="mt-3 text-xs text-red-300">{error}</p> : null}
+        {error ? <p className="mt-3 text-xs text-red-300 light:text-red-600">{error}</p> : null}
         {plan ? (
-          <div className="mt-4 rounded-xl border border-white/[0.08] bg-black/30 p-4 text-sm">
+          <div className="mt-4 rounded-xl border border-white/[0.08] bg-black/30 p-4 text-sm light:border-indigo-950/15">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-zinc-400">Intent: <span className="font-mono text-indigo-300">{plan.intent}</span></p>
               <span className="rounded-full bg-white/5 px-2.5 py-1 font-mono text-[11px] text-zinc-400">

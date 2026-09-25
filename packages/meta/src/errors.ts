@@ -59,7 +59,7 @@ export function normalizeMetaError(raw: RawMetaError, ctx?: { product?: string; 
     retryable = true;
     headline = "Meta rate limit reached";
     probableCause = "The app exceeded Meta's rate limits.";
-    recommendedFix = "Wait and retry with backoff. MetaFlux throttles automatically.";
+    recommendedFix = "Wait and retry with backoff. SocialFlux throttles automatically.";
   } else if (code === 100 || message.includes("invalid parameter") || message.includes("param")) {
     category = "invalid_parameter";
     headline = "Invalid request to Meta";
@@ -76,7 +76,7 @@ export function normalizeMetaError(raw: RawMetaError, ctx?: { product?: string; 
     userActionRequired = false;
     headline = "Meta is having issues";
     probableCause = "Meta's API returned a server error.";
-    recommendedFix = "MetaFlux will retry automatically with backoff.";
+    recommendedFix = "SocialFlux will retry automatically with backoff.";
   }
 
   return {

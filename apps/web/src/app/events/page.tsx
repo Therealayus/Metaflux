@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { EmptyBlock, ErrorBlock, LoadingBlock, timeAgo } from "@/components/data-states";
+import { toast } from "@/components/toaster";
 import { api, ApiError, Page } from "@/lib/api";
 import { useSession } from "@/lib/use-session";
 
@@ -25,9 +26,9 @@ interface EventDetail extends EventItem {
 }
 
 function statusTone(status: string): string {
-  if (status === "processed") return "text-emerald-300";
-  if (status === "failed" || status === "dead_letter") return "text-red-300";
-  return "text-amber-300";
+  if (status === "processed") return "text-emerald-300 light:text-emerald-700";
+  if (status === "failed" || status === "dead_letter") return "text-red-300 light:text-red-600";
+  return "text-amber-300 light:text-amber-600";
 }
 
 export default function EventsPage() {
@@ -36,7 +37,6 @@ export default function EventsPage() {
   const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
   const [selected, setSelected] = useState<EventDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   function refresh(cursor?: string) {
     setError(null);
@@ -66,28 +66,30 @@ export default function EventsPage() {
 
   async function replay(id: string) {
     setError(null);
-    setNotice(null);
     try {
       await api(`/api/v1/events/${id}/replay`, { method: "POST" });
-      setNotice(`Event requeued for processing.`);
+      toast.success("Event requeued for processing");
       refresh();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Replay failed");
+      const msg = e instanceof ApiError ? e.message : "Replay failed";
+      setError(msg);
+      toast.error("Replay failed", msg);
     }
   }
 
   async function sendTest() {
     setError(null);
-    setNotice(null);
     try {
       const out = await api<{ eventId: string }>("/api/v1/webhooks/meta/test", {
         method: "POST",
         body: JSON.stringify({ product: "instagram", eventType: "comment.created", payload: { text: "PRICE please" } }),
       });
-      setNotice(`Test event ${out.eventId} accepted — watch it arrive below.`);
+      toast.success("Test event accepted", "Watch it arrive below.");
       refresh();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Test event failed");
+      const msg = e instanceof ApiError ? e.message : "Test event failed";
+      setError(msg);
+      toast.error("Test event failed", msg);
     }
   }
 
@@ -97,13 +99,12 @@ export default function EventsPage() {
         title="Events"
         body="Every webhook event is inspectable, replayable and auditable."
         action={
-          <button onClick={() => void sendTest()} className="h-9 rounded-lg border border-white/10 px-4 text-sm text-zinc-200 hover:bg-white/[0.05]">
+          <button onClick={() => void sendTest()} className="h-9 rounded-lg border border-white/10 px-4 text-sm text-zinc-200 hover:bg-white/[0.05] light:border-indigo-950/15 light:bg-white light:text-zinc-700 light:shadow-sm light:hover:bg-zinc-50">
             Send test event
           </button>
         }
       />
-      {notice ? <p className="mb-4 rounded-lg border border-emerald-400/25 bg-emerald-400/5 px-3 py-2 text-xs text-emerald-200">{notice}</p> : null}
-      {error ? <div className="mb-4"><ErrorBlock message={error} onRetry={() => refresh()} /></div> : null}
+      {error && items === null ? <div className="mb-4"><ErrorBlock message={error} onRetry={() => refresh()} /></div> : null}
       {!items ? (
         <LoadingBlock />
       ) : items.length === 0 ? (
@@ -113,14 +114,14 @@ export default function EventsPage() {
         />
       ) : (
         <>
-          <div className="overflow-hidden rounded-2xl border border-white/10">
+          <div className="overflow-hidden rounded-2xl border border-white/10 light:border-indigo-950/10 light:bg-white light:shadow-sm">
             <table className="w-full text-left text-sm">
-              <thead className="bg-white/[0.03] text-xs uppercase tracking-wider text-zinc-500">
+              <thead className="bg-white/[0.03] text-xs uppercase tracking-wider text-zinc-500 light:bg-zinc-50">
                 <tr><th className="px-4 py-3">Event</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Received</th><th className="px-4 py-3">Result</th></tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.06] text-zinc-300">
+              <tbody className="divide-y divide-white/[0.06] text-zinc-300 light:divide-zinc-900/10 light:text-zinc-600">
                 {items.map((e) => (
-                  <tr key={e.id} onClick={() => void inspect(e.id)} className="cursor-pointer hover:bg-white/[0.03]">
+                  <tr key={e.id} onClick={() => void inspect(e.id)} className="cursor-pointer hover:bg-white/[0.03] light:hover:bg-indigo-950/[0.03]">
                     <td className="px-4 py-3 font-mono text-xs">{e.eventId.length > 42 ? `${e.eventId.slice(0, 42)}…` : e.eventId}</td>
                     <td className="px-4 py-3">{e.product} · {e.eventType}</td>
                     <td className="px-4 py-3 text-xs text-zinc-500">{timeAgo(e.receivedAt)}</td>
@@ -132,7 +133,7 @@ export default function EventsPage() {
           </div>
           <div className="mt-3 flex gap-2">
             {nextCursor ? (
-              <button onClick={() => refresh(nextCursor)} className="h-9 rounded-lg border border-white/10 px-4 text-sm text-zinc-200 hover:bg-white/[0.05]">
+              <button onClick={() => refresh(nextCursor)} className="h-9 rounded-lg border border-white/10 px-4 text-sm text-zinc-200 hover:bg-white/[0.05] light:border-indigo-950/15 light:bg-white light:text-zinc-700 light:shadow-sm light:hover:bg-zinc-50">
                 Load more
               </button>
             ) : null}
@@ -140,19 +141,19 @@ export default function EventsPage() {
         </>
       )}
       {selected ? (
-        <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+        <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.02] p-5 light:border-indigo-950/10 light:bg-white light:shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="font-mono text-xs text-zinc-200">{selected.eventId}</p>
+            <p className="font-mono text-xs text-zinc-200 light:text-zinc-700">{selected.eventId}</p>
             <div className="flex gap-2">
-              <button onClick={() => void replay(selected.id)} className="h-8 rounded-lg border border-white/10 px-3 text-xs text-zinc-200 hover:bg-white/[0.05]">Replay</button>
-              <button onClick={() => setSelected(null)} className="h-8 rounded-lg border border-white/10 px-3 text-xs text-zinc-400 hover:bg-white/[0.05]">Close</button>
+              <button onClick={() => void replay(selected.id)} className="h-8 rounded-lg border border-white/10 px-3 text-xs text-zinc-200 hover:bg-white/[0.05] light:border-indigo-950/15 light:text-zinc-700 light:hover:bg-zinc-900/[0.04]">Replay</button>
+              <button onClick={() => setSelected(null)} className="h-8 rounded-lg border border-white/10 px-3 text-xs text-zinc-400 hover:bg-white/[0.05] light:border-indigo-950/15 light:text-zinc-500 light:hover:bg-zinc-900/[0.04]">Close</button>
             </div>
           </div>
           <p className="mt-1 text-xs text-zinc-500">
             {selected.product} · {selected.eventType} · {selected.status} · storage: {selected.storage}
             {selected.truncated ? " · truncated for display" : ""} · {selected.error ?? "no error"}
           </p>
-          <pre className="mt-3 max-h-96 overflow-auto rounded-xl border border-white/[0.07] bg-black/40 p-4 font-mono text-[11px] leading-relaxed text-zinc-300">
+          <pre className="mt-3 max-h-96 overflow-auto rounded-xl border border-white/[0.07] bg-black/40 p-4 font-mono text-[11px] leading-relaxed text-zinc-300 light:border-indigo-950/15 light:bg-zinc-950">
             {JSON.stringify(selected.payload, null, 2)}
           </pre>
         </div>

@@ -1,7 +1,7 @@
-import { getStore } from "@metaflux/database";
-import { normalizeWebhookEvent, verifyWebhookSignature } from "@metaflux/meta";
-import { metrics } from "@metaflux/observability";
-import { getQueueDriver, newJob } from "@metaflux/queues";
+import { getStore } from "@socialflux/database";
+import { normalizeWebhookEvent, verifyWebhookSignature } from "@socialflux/meta";
+import { metrics } from "@socialflux/observability";
+import { getQueueDriver, newJob } from "@socialflux/queues";
 import type { FastifyInstance } from "fastify";
 import { persistPayload, payloadStoreFromEnv } from "../payloads.js";
 import { requestId } from "../tenant.js";

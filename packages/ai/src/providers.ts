@@ -38,7 +38,7 @@ export function estimateTokens(text: string): number {
   return Math.max(1, Math.ceil(text.length / 4));
 }
 
-const PLAN_SYSTEM = `You are MetaFlux's integration planner. Convert the user's business goal into a JSON execution plan.
+const PLAN_SYSTEM = `You are SocialFlux's integration planner. Convert the user's business goal into a JSON execution plan.
 Only use these products: instagram, whatsapp, facebook, meta.
 Only use these capabilities: instagram:comments, instagram:messaging, instagram:insights, whatsapp:messaging, facebook:comments, facebook:messaging.
 Respond with JSON only, matching this schema:

@@ -1,0 +1,8 @@
+version: "3"
+tunnels:
+  socialflux-api:
+    proto: http
+    addr: 4000
+  # Web UI stays on http://localhost:3001 locally.
+  # (Free ngrok accounts get a single domain; one URL cannot front two
+  # backends, and the API is what Meta's servers must reach.)

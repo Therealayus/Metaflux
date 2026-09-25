@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AppShell, PageHeader } from "@/components/app-shell";
+import { toast } from "@/components/toaster";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -66,20 +67,22 @@ export default function AdminPage() {
     });
     if (!res.ok) {
       setError("Flag update failed");
+      toast.error("Flag update failed", name);
       return;
     }
     await load(key);
+    toast.success("Flag updated", name);
   }
 
   if (!authed) {
     return (
       <AppShell>
         <PageHeader title="Admin console" body="Separate secure surface. Requires the instance ADMIN_API_KEY — never a user session." />
-        <form onSubmit={(e) => void submitKey(e)} className="max-w-md space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-          <label className="block text-xs text-zinc-400">Admin key
-            <input type="password" value={key} onChange={(e) => setKey(e.target.value)} placeholder="…" className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/40 px-2 font-mono text-sm text-zinc-100" />
+        <form onSubmit={(e) => void submitKey(e)} className="max-w-md space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-5 light:border-indigo-950/10 light:bg-white light:shadow-sm">
+          <label className="block text-xs text-zinc-400 light:text-zinc-500">Admin key
+            <input type="password" value={key} onChange={(e) => setKey(e.target.value)} placeholder="…" className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/40 px-2 font-mono text-sm text-zinc-100 light:border-indigo-950/15 light:bg-white light:text-zinc-900 light:shadow-sm" />
           </label>
-          {error ? <p className="text-xs text-red-300">{error}</p> : null}
+          {error ? <p className="text-xs text-red-300 light:text-red-600">{error}</p> : null}
           <button className="h-10 rounded-lg bg-indigo-500 px-5 text-sm font-medium text-white hover:bg-indigo-400">Unlock</button>
         </form>
       </AppShell>
@@ -95,46 +98,46 @@ export default function AdminPage() {
           ["Dead letters", String(overview?.dlqDepth ?? 0)],
           ["Plans", (overview?.plans ?? []).join(", ")],
         ].map(([k, v]) => (
-          <div key={k} className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+          <div key={k} className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 light:border-indigo-950/10 light:bg-white light:shadow-sm">
             <p className="text-xs text-zinc-500">{k}</p>
-            <p className="mt-1 font-mono text-lg text-white">{v}</p>
+            <p className="mt-1 font-mono text-lg text-white light:text-zinc-900">{v}</p>
           </div>
         ))}
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 light:border-indigo-950/10 light:bg-white light:shadow-sm">
           <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">Feature flags</p>
           <div className="mt-3 flex gap-2">
-            <input value={flagName} onChange={(e) => setFlagName(e.target.value)} placeholder="new.flag" className="h-9 flex-1 rounded-lg border border-white/10 bg-black/40 px-2 font-mono text-xs text-zinc-100" />
-            <input value={flagPct} onChange={(e) => setFlagPct(e.target.value)} placeholder="50" className="h-9 w-16 rounded-lg border border-white/10 bg-black/40 px-2 font-mono text-xs text-zinc-100" />
-            <button onClick={() => void toggleFlag(flagName || "untitled", true, Number(flagPct) || 0)} className="h-9 rounded-lg border border-white/10 px-3 text-xs text-zinc-200">Set</button>
+            <input value={flagName} onChange={(e) => setFlagName(e.target.value)} placeholder="new.flag" className="h-9 flex-1 rounded-lg border border-white/10 bg-black/40 px-2 font-mono text-xs text-zinc-100 light:border-indigo-950/15 light:bg-white light:text-zinc-900 light:shadow-sm" />
+            <input value={flagPct} onChange={(e) => setFlagPct(e.target.value)} placeholder="50" className="h-9 w-16 rounded-lg border border-white/10 bg-black/40 px-2 font-mono text-xs text-zinc-100 light:border-indigo-950/15 light:bg-white light:text-zinc-900 light:shadow-sm" />
+            <button onClick={() => void toggleFlag(flagName || "untitled", true, Number(flagPct) || 0)} className="h-9 rounded-lg border border-white/10 px-3 text-xs text-zinc-200 light:border-indigo-950/15 light:text-zinc-700">Set</button>
           </div>
           <ul className="mt-3 space-y-2">
             {Object.entries(overview?.flags ?? {}).map(([name, f]) => (
-              <li key={name} className="flex items-center justify-between rounded-lg border border-white/[0.07] px-3 py-2 font-mono text-xs">
-                <span className="text-zinc-200">{name} <span className="text-zinc-500">{f.percentage !== undefined ? `${f.percentage}%` : f.enabled ? "on" : "off"}</span></span>
+              <li key={name} className="flex items-center justify-between rounded-lg border border-white/[0.07] px-3 py-2 font-mono text-xs light:border-indigo-950/10">
+                <span className="text-zinc-200 light:text-zinc-700">{name} <span className="text-zinc-500">{f.percentage !== undefined ? `${f.percentage}%` : f.enabled ? "on" : "off"}</span></span>
                 <span className="flex gap-1.5">
-                  <button onClick={() => void toggleFlag(name, true, 100)} className="rounded border border-emerald-400/30 px-2 py-0.5 text-emerald-200">on</button>
-                  <button onClick={() => void toggleFlag(name, false, 0)} className="rounded border border-white/10 px-2 py-0.5 text-zinc-400">off</button>
+                  <button onClick={() => void toggleFlag(name, true, 100)} className="rounded border border-emerald-400/30 px-2 py-0.5 text-emerald-200 light:text-emerald-700">on</button>
+                  <button onClick={() => void toggleFlag(name, false, 0)} className="rounded border border-white/10 px-2 py-0.5 text-zinc-400 light:border-indigo-950/15 light:text-zinc-500">off</button>
                 </span>
               </li>
             ))}
           </ul>
-          {error ? <p className="mt-2 text-xs text-red-300">{error}</p> : null}
+          {error ? <p className="mt-2 text-xs text-red-300 light:text-red-600">{error}</p> : null}
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 light:border-indigo-950/10 light:bg-white light:shadow-sm">
           <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">Dead letters (metadata only)</p>
           {dlq.length === 0 ? (
             <p className="mt-2 text-xs text-zinc-500">Queue is healthy — nothing dead-lettered.</p>
           ) : (
             <ul className="mt-3 space-y-2">
               {dlq.map((d, i) => (
-                <li key={i} className="rounded-lg border border-white/[0.07] px-3 py-2 font-mono text-[11px] text-zinc-300">
+                <li key={i} className="rounded-lg border border-white/[0.07] px-3 py-2 font-mono text-[11px] text-zinc-300 light:border-indigo-950/10 light:text-zinc-600">
                   <p>{d.jobName} · attempts {d.attempts}</p>
-                  <p className="text-red-300">{d.error}</p>
-                  <p className="text-zinc-600">{d.failedAt}</p>
+                  <p className="text-red-300 light:text-red-600">{d.error}</p>
+                  <p className="text-zinc-600 light:text-zinc-400">{d.failedAt}</p>
                 </li>
               ))}
             </ul>

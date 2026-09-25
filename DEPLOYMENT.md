@@ -3,7 +3,7 @@
 ## Services
 
 Web + API + Worker + Postgres + Redis + object storage + queue. Env from
-`.env.example`. Migrate with `pnpm --filter @metaflux/database migrate`
+`.env.example`. Migrate with `pnpm --filter @socialflux/database migrate`
 (can be run as `prisma migrate deploy` in CI/CD).
 
 ## Checklist
@@ -14,7 +14,7 @@ Web + API + Worker + Postgres + Redis + object storage + queue. Env from
    `WEB_URL`, `STRIPE_*` (or leave billing manual), `ADMIN_API_KEY`,
    `METRICS_TOKEN`, `ALLOW_DEV_AUTH` (leave unset in production).
 2. `docker compose up -d` (local) or provision managed Postgres/Redis/S3.
-3. `pnpm install && pnpm --filter @metaflux/database migrate && pnpm build`.
+3. `pnpm install && pnpm --filter @socialflux/database migrate && pnpm build`.
 4. Start `apps/web` (3000), `apps/api` (4000), `apps/worker` (loop).
 5. Verify `/api/v1/ready` is 200 and `/api/v1/metrics` scrapes.
 

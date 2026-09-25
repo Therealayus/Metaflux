@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { EmptyBlock, ErrorBlock, LoadingBlock, timeAgo } from "@/components/data-states";
+import { toast } from "@/components/toaster";
 import { api, ApiError } from "@/lib/api";
 import { useSession } from "@/lib/use-session";
 
@@ -35,7 +36,6 @@ function ConnectionsInner() {
   const { workspace, workspaces, loading: sessionLoading } = useSession();
   const [connections, setConnections] = useState<Connection[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   const connectedParam = params.get("connected");
@@ -62,9 +62,12 @@ function ConnectionsInner() {
       const { url } = await api<{ url: string }>(
         `/api/v1/connections/meta/start?product=${product}&workspaceId=${wsId}`,
       );
+      toast.info(`Opening Meta…`, `Connect your ${product} account to continue.`);
       window.location.href = url;
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Could not start Meta connection");
+      const msg = e instanceof ApiError ? e.message : "Could not start Meta connection";
+      setError(msg);
+      toast.error("Connection failed", msg);
       setBusy(null);
     }
   }
@@ -74,29 +77,28 @@ function ConnectionsInner() {
     setError(null);
     try {
       await api(`/api/v1/connections/${id}`, { method: "DELETE", confirm: true });
-      setNotice(`${product} disconnected.`);
+      toast.success(`${product} disconnected`, "Tokens deleted, automations stopped.");
       refresh();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Disconnect failed");
+      const msg = e instanceof ApiError ? e.message : "Disconnect failed";
+      setError(msg);
+      toast.error("Disconnect failed", msg);
     }
   }
 
   return (
     <>
       {connectedParam ? (
-        <p className="mb-4 rounded-lg border border-emerald-400/25 bg-emerald-400/5 px-3 py-2 text-xs text-emerald-200">
+        <p className="mb-4 rounded-lg border border-emerald-400/25 bg-emerald-400/5 px-3 py-2 text-xs text-emerald-200 light:bg-emerald-500/10 light:text-emerald-800">
           {connectedParam} connected. Run discovery below to import its assets.
         </p>
       ) : null}
       {errorParam ? (
-        <p className="mb-4 rounded-lg border border-red-400/25 bg-red-400/5 px-3 py-2 text-xs text-red-200">
+        <p className="mb-4 rounded-lg border border-red-400/25 bg-red-400/5 px-3 py-2 text-xs text-red-200 light:text-red-700">
           Connection failed: {decodeURIComponent(errorParam)}
         </p>
       ) : null}
-      {notice ? (
-        <p className="mb-4 rounded-lg border border-emerald-400/25 bg-emerald-400/5 px-3 py-2 text-xs text-emerald-200">{notice}</p>
-      ) : null}
-      {error ? <div className="mb-4"><ErrorBlock message={error} onRetry={refresh} /></div> : null}
+      {error && connections === null ? <div className="mb-4"><ErrorBlock message={error} onRetry={refresh} /></div> : null}
 
       {!connections ? (
         <LoadingBlock />
@@ -107,18 +109,18 @@ function ConnectionsInner() {
               const conn = connections.find((c) => c.product === p.id);
               const ok = conn?.status === "connected";
               return (
-                <div key={p.id} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+                <div key={p.id} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 light:border-indigo-950/10 light:bg-white light:shadow-sm">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-white">{p.label}</p>
+                    <p className="text-sm font-medium text-white light:text-zinc-900">{p.label}</p>
                     {conn ? (
-                      <span className={`text-xs ${ok ? "text-emerald-300" : "text-amber-300"}`}>
+                      <span className={`text-xs ${ok ? "text-emerald-300 light:text-emerald-700" : "text-amber-300 light:text-amber-600"}`}>
                         ● {ok ? "Connected" : conn.status.replace(/_/g, " ")}
                       </span>
                     ) : (
                       <span className="text-xs text-zinc-500">● Not connected</span>
                     )}
                   </div>
-                  <p className="mt-2 text-xs leading-relaxed text-zinc-400">{p.hint}</p>
+                  <p className="mt-2 text-xs leading-relaxed text-zinc-400 light:text-zinc-500">{p.hint}</p>
                   {conn ? (
                     <p className="mt-2 text-xs text-zinc-500">
                       {conn.assetCount} assets · {conn.scopes.length} scopes · last event {timeAgo(conn.lastEventAt)}
@@ -127,12 +129,12 @@ function ConnectionsInner() {
                   <div className="mt-4 flex gap-2">
                     {conn ? (
                       <>
-                        <Link href="/health" className="inline-flex h-8 items-center rounded-lg border border-white/10 px-3 text-xs text-zinc-200 hover:bg-white/[0.05]">
+                        <Link href="/health" className="inline-flex h-8 items-center rounded-lg border border-white/10 px-3 text-xs text-zinc-200 hover:bg-white/[0.05] light:border-indigo-950/15 light:text-zinc-700 light:hover:bg-zinc-900/[0.04]">
                           Health
                         </Link>
                         <button
                           onClick={() => void disconnect(conn.id, p.label)}
-                          className="inline-flex h-8 items-center rounded-lg border border-red-400/30 px-3 text-xs text-red-200 hover:bg-red-400/10"
+                          className="inline-flex h-8 items-center rounded-lg border border-red-400/30 px-3 text-xs text-red-200 hover:bg-red-400/10 light:text-red-600"
                         >
                           Disconnect
                         </button>
@@ -155,7 +157,7 @@ function ConnectionsInner() {
             <div className="mt-4">
               <EmptyBlock
                 title="No connections yet"
-                body="Pick a product above. MetaFlux handles OAuth, token storage, asset discovery and webhook setup."
+                body="Pick a product above. SocialFlux handles OAuth, token storage, asset discovery and webhook setup."
               />
             </div>
           ) : null}

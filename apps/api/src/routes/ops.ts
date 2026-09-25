@@ -1,5 +1,5 @@
-import { metrics, renderMetrics } from "@metaflux/observability";
-import { getQueueDriver } from "@metaflux/queues";
+import { metrics, renderMetrics } from "@socialflux/observability";
+import { getQueueDriver } from "@socialflux/queues";
 import type { FastifyInstance } from "fastify";
 import { requestId } from "../tenant.js";
 
@@ -18,7 +18,7 @@ export async function opsRoutes(app: FastifyInstance) {
     const checks: Record<string, string> = {};
     let ok = true;
     try {
-      const { getPrisma } = await import("@metaflux/database");
+      const { getPrisma } = await import("@socialflux/database");
       await getPrisma().$queryRaw`SELECT 1`;
       checks.database = "ok";
     } catch (err) {

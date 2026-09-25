@@ -1,4 +1,4 @@
-import { CapabilityRegistry, DEFAULT_CAPABILITIES, PermissionRegistry, DEFAULT_PERMISSIONS } from "@metaflux/meta";
+import { CapabilityRegistry, DEFAULT_CAPABILITIES, PermissionRegistry, DEFAULT_PERMISSIONS } from "@socialflux/meta";
 import type { FastifyInstance } from "fastify";
 import { requestId } from "../tenant.js";
 

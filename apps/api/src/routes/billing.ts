@@ -1,10 +1,10 @@
-import { requireRole } from "@metaflux/auth";
-import { PLANS, createCheckoutSession, getPlan, verifyStripeWebhook } from "@metaflux/billing";
-import { monthStartIso } from "@metaflux/ai";
-import { getStore } from "@metaflux/database";
+import { requireRole } from "@socialflux/auth";
+import { PLANS, createCheckoutSession, getPlan, verifyStripeWebhook } from "@socialflux/billing";
+import { monthStartIso } from "@socialflux/ai";
+import { getStore } from "@socialflux/database";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { planFor } from "@metaflux/billing";
+import { planFor } from "@socialflux/billing";
 import { requestId, requireTenant, sendError } from "../tenant.js";
 
 const checkoutBody = z.object({ plan: z.enum(["starter", "growth", "business"]) });

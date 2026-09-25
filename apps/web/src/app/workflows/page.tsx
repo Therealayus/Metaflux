@@ -57,21 +57,21 @@ export default function WorkflowsPage() {
           </button>
         }
       />
-      {error ? <p className="mb-4 rounded-lg border border-red-400/25 bg-red-400/5 px-3 py-2 text-xs text-red-200">{error}</p> : null}
+      {error ? <p className="mb-4 rounded-lg border border-red-400/25 bg-red-400/5 px-3 py-2 text-xs text-red-200 light:text-red-700">{error}</p> : null}
       {items.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/15 px-6 py-12 text-center">
-          <p className="text-sm font-medium text-zinc-100">No workflows yet</p>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-zinc-400">Create your first automation from a starter template, then refine it on the visual canvas.</p>
+        <div className="rounded-2xl border border-dashed border-white/15 px-6 py-12 text-center light:border-indigo-950/20 light:bg-white/60">
+          <p className="text-sm font-medium text-zinc-100 light:text-zinc-800">No workflows yet</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-zinc-400 light:text-zinc-500">Create your first automation from a starter template, then refine it on the visual canvas.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {items.map((w) => (
-            <Link key={w.id} href={`/workflows/${w.id}`} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4 hover:bg-white/[0.04]">
+            <Link key={w.id} href={`/workflows/${w.id}`} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4 hover:bg-white/[0.04] light:border-indigo-950/10 light:bg-white light:shadow-sm light:hover:bg-zinc-50">
               <div>
-                <p className="text-sm font-medium text-white">{w.name}</p>
+                <p className="text-sm font-medium text-white light:text-zinc-900">{w.name}</p>
                 <p className="mt-0.5 font-mono text-xs text-zinc-500">{w.definition.nodes.map((n) => n.type).join(" → ")}</p>
               </div>
-              <span className={`rounded-full px-2.5 py-1 text-xs ${w.status === "active" ? "bg-emerald-400/10 text-emerald-300" : "bg-white/5 text-zinc-400"}`}>{w.status}</span>
+              <span className={`rounded-full px-2.5 py-1 text-xs ${w.status === "active" ? "bg-emerald-400/10 text-emerald-300 light:bg-emerald-500/10 light:text-emerald-700" : "bg-white/5 text-zinc-400 light:bg-zinc-900/[0.05] light:text-zinc-500"}`}>{w.status}</span>
             </Link>
           ))}
         </div>

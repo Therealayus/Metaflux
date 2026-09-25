@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
-import { hashPassword, newSessionToken, verifyPassword } from "@metaflux/auth";
-import { getStore } from "@metaflux/database";
+import { hashPassword, newSessionToken, verifyPassword } from "@socialflux/auth";
+import { getStore } from "@socialflux/database";
 import type { FastifyInstance, FastifyReply } from "fastify";
 import { z } from "zod";
 import { SESSION_COOKIE, requestId, sendError } from "../tenant.js";

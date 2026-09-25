@@ -1,20 +1,20 @@
 {
-  "name": "metaflux",
+  "name": "socialflux",
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@9.7.1",
   "scripts": {
     "dev": "turbo run dev --parallel",
-    "dev:web": "pnpm --filter @metaflux/web dev",
-    "dev:api": "pnpm --filter @metaflux/api dev",
-    "dev:worker": "pnpm --filter @metaflux/worker dev",
+    "dev:web": "pnpm --filter @socialflux/web dev",
+    "dev:api": "pnpm --filter @socialflux/api dev",
+    "dev:worker": "pnpm --filter @socialflux/worker dev",
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "db:generate": "pnpm --filter @metaflux/database generate",
-    "db:migrate": "pnpm --filter @metaflux/database migrate",
-    "db:push": "pnpm --filter @metaflux/database push",
+    "db:generate": "pnpm --filter @socialflux/database generate",
+    "db:migrate": "pnpm --filter @socialflux/database migrate",
+    "db:push": "pnpm --filter @socialflux/database push",
     "clean": "turbo run clean"
   },
   "devDependencies": {

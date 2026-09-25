@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { __resetCacheForTests } from "@metaflux/database";
-import { __resetQueueDriverForTests } from "@metaflux/queues";
-import { __resetStoreForTests } from "@metaflux/database";
+import { __resetCacheForTests } from "@socialflux/database";
+import { __resetQueueDriverForTests } from "@socialflux/queues";
+import { __resetStoreForTests } from "@socialflux/database";
 import { buildServer } from "../server.js";
 
 beforeEach(() => {
@@ -26,7 +26,7 @@ describe("ops + admin", () => {
     const metricsRes = await app.inject({ method: "GET", url: "/api/v1/metrics" });
     expect(metricsRes.statusCode).toBe(200);
     expect(metricsRes.headers["content-type"]).toContain("text/plain");
-    expect(metricsRes.body).toContain("metaflux_http_requests_total");
+    expect(metricsRes.body).toContain("socialflux_http_requests_total");
   });
 
   it("gates metrics behind a token when configured", async () => {

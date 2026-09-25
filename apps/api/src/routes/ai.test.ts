@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { __resetCacheForTests, __resetStoreForTests } from "@metaflux/database";
+import { __resetCacheForTests, __resetStoreForTests } from "@socialflux/database";
 import { buildServer } from "../server.js";
 
 const HEADERS = { "x-user-id": "u1", "x-org-id": "org_ai" };

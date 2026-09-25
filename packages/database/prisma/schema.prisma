@@ -71,7 +71,7 @@ model MetaConnection {
   product        String
   status         String   @default("disconnected")
   scopes         String[] @default([])
-  // Encrypted access token (AES-256-GCM, see @metaflux/security). Never raw.
+  // Encrypted access token (AES-256-GCM, see @socialflux/security). Never raw.
   encryptedToken String?
   tokenExpiresAt DateTime?
   metaUserId     String?

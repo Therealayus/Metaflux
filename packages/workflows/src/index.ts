@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { WorkflowDefinition } from "@metaflux/types";
+import type { WorkflowDefinition } from "@socialflux/types";
 
 const nodeSchema = z.object({
   id: z.string().min(1),

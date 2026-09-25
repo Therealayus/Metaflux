@@ -77,14 +77,14 @@ class Histogram {
 }
 
 export const metrics = {
-  httpRequests: new Counter("metaflux_http_requests_total", "API requests by route, method and status"),
-  httpLatency: new Histogram("metaflux_http_latency_ms", "API latency in milliseconds"),
-  webhookEvents: new Counter("metaflux_webhook_events_total", "Webhook events by product and outcome"),
-  workflowExecutions: new Counter("metaflux_workflow_executions_total", "Workflow executions by status"),
-  jobs: new Counter("metaflux_jobs_total", "Queue jobs by name and outcome"),
-  aiSpendCents: new Counter("metaflux_ai_spend_cents_total", "AI spend in USD cents by org and model"),
-  queueDepth: new Gauge("metaflux_queue_depth", "Jobs waiting in the queue"),
-  dlqDepth: new Gauge("metaflux_dlq_depth", "Jobs in the dead-letter queue"),
+  httpRequests: new Counter("socialflux_http_requests_total", "API requests by route, method and status"),
+  httpLatency: new Histogram("socialflux_http_latency_ms", "API latency in milliseconds"),
+  webhookEvents: new Counter("socialflux_webhook_events_total", "Webhook events by product and outcome"),
+  workflowExecutions: new Counter("socialflux_workflow_executions_total", "Workflow executions by status"),
+  jobs: new Counter("socialflux_jobs_total", "Queue jobs by name and outcome"),
+  aiSpendCents: new Counter("socialflux_ai_spend_cents_total", "AI spend in USD cents by org and model"),
+  queueDepth: new Gauge("socialflux_queue_depth", "Jobs waiting in the queue"),
+  dlqDepth: new Gauge("socialflux_dlq_depth", "Jobs in the dead-letter queue"),
 };
 
 export function renderMetrics(): string {

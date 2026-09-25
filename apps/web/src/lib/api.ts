@@ -13,6 +13,13 @@ function headers(): Record<string, string> {
   if (typeof window === "undefined") return {};
   // Session cookie (credentials:include below) takes precedence on the API;
   // these headers select org/workspace and are the dev fallback.
+  return tenantHeaders();
+}
+
+/** Org/workspace selector headers. The API requires x-org-id alongside the
+ *  session cookie, so raw fetch() callers must include these too. */
+export function tenantHeaders(): Record<string, string> {
+  if (typeof window === "undefined") return {};
   const out: Record<string, string> = {
     "x-org-id": stored(ORG_KEY, "dev-org"),
     "x-user-id": stored(USER_KEY, "dev-user"),
@@ -61,11 +68,15 @@ export interface Page<T> {
 }
 
 export async function api<T>(path: string, init?: RequestInit & { confirm?: boolean }): Promise<T> {
+  const hasBody = init?.body !== undefined;
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
     credentials: "include",
     headers: {
-      "Content-Type": "application/json",
+      // Only declare JSON when a body is actually sent: Fastify rejects
+      // bodyless requests that claim application/json (FST_ERR_CTP_EMPTY_JSON_BODY),
+      // which broke endpoints like POST .../discover.
+      ...(hasBody ? { "Content-Type": "application/json" } : {}),
       ...headers(),
       ...(init?.confirm ? { "x-confirm": "true" } : {}),
       ...(init?.headers ?? {}),

@@ -1,4 +1,4 @@
-import type { TenantContext, TenantRole } from "@metaflux/types";
+import type { TenantContext, TenantRole } from "@socialflux/types";
 
 const ROLE_RANK: Record<TenantRole, number> = { owner: 3, admin: 2, member: 1, viewer: 0 };
 

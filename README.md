@@ -1,4 +1,4 @@
-# MetaFlux — Talk to Meta. We'll handle the APIs.
+# SocialFlux — Talk to Meta. We'll handle the APIs.
 
 Premium AI-native Meta API integration & automation platform. Modular monolith
 (web / api / worker + packages) with clean boundaries for later extraction.
@@ -9,7 +9,7 @@ Premium AI-native Meta API integration & automation platform. Modular monolith
 cp .env.example .env
 docker compose up -d            # postgres, redis, minio
 pnpm install
-pnpm --filter @metaflux/database push
+pnpm --filter @socialflux/database push
 pnpm dev                        # web :3000, api :4000, worker
 ```
 

@@ -1,4 +1,4 @@
-// @metaflux/types — shared domain DTOs. No runtime deps.
+// @socialflux/types — shared domain DTOs. No runtime deps.
 
 export type Provider = "meta";
 export type MetaProduct = "instagram" | "whatsapp" | "facebook";

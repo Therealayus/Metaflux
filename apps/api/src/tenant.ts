@@ -1,11 +1,11 @@
 import { createHash } from "node:crypto";
-import { requireRole } from "@metaflux/auth";
-import { getStore } from "@metaflux/database";
-import { logger, newRequestId } from "@metaflux/observability";
-import type { TenantContext, TenantRole } from "@metaflux/types";
+import { requireRole } from "@socialflux/auth";
+import { getStore } from "@socialflux/database";
+import { logger, newRequestId } from "@socialflux/observability";
+import type { TenantContext, TenantRole } from "@socialflux/types";
 import type { FastifyReply, FastifyRequest } from "fastify";
 
-export const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME ?? "metaflux_session";
+export const SESSION_COOKIE = process.env.SESSION_COOKIE_NAME ?? "socialflux_session";
 
 export function requestId(request: FastifyRequest): string {
   const header = request.headers["x-request-id"];

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { AppShell, PageHeader } from "@/components/app-shell";
-import { api, ApiError, Page } from "@/lib/api";
+import { api, ApiError, Page, tenantHeaders } from "@/lib/api";
+import { toast } from "@/components/toaster";
 
 interface SendResult {
   providerMessageId: string;
@@ -26,7 +27,7 @@ interface ApiLog {
 export default function ExplorerPage() {
   const [channel, setChannel] = useState("whatsapp");
   const [recipient, setRecipient] = useState("");
-  const [message, setMessage] = useState("Hello from MetaFlux");
+  const [message, setMessage] = useState("Hello from SocialFlux");
   const [apiKey, setApiKey] = useState("");
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +56,7 @@ export default function ExplorerPage() {
       const headers: Record<string, string> = apiKey ? { Authorization: `Bearer ${apiKey}` } : {};
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"}/api/v1/messages`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...headers },
+        headers: { "Content-Type": "application/json", ...tenantHeaders(), ...headers },
         credentials: "include",
         body: JSON.stringify({ channel, recipient, message }),
       });
@@ -63,8 +64,11 @@ export default function ExplorerPage() {
       const ms = Math.round(performance.now() - started);
       if (!res.ok) throw new Error(body.message ?? `Send failed (${res.status})`);
       setResult(`${res.status} Created · ${body.latencyMs ?? ms}ms\nprovider: ${body.provider} · api: ${body.apiVersion}\n\n${JSON.stringify({ providerMessageId: body.providerMessageId, channel: body.channel, status: body.status }, null, 2)}`);
+      toast.success(`Sent via ${channel}`, `${body.latencyMs ?? ms}ms · ${body.providerMessageId ?? "queued"}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Send failed");
+      const msg = e instanceof Error ? e.message : "Send failed";
+      setError(msg);
+      toast.error("Send failed", msg);
     } finally {
       setBusy(false);
       void refreshLogs();
@@ -75,47 +79,47 @@ export default function ExplorerPage() {
     <AppShell>
       <PageHeader title="API Explorer" body="POST /v1/messages with live request, response, latency and provider trace." />
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+        <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-5 light:border-indigo-950/10 light:bg-white light:shadow-sm">
           <div className="grid grid-cols-2 gap-3">
-            <label className="block text-xs text-zinc-400">Channel
-              <select value={channel} onChange={(e) => setChannel(e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/40 px-2 text-sm text-zinc-100">
+            <label className="block text-xs text-zinc-400 light:text-zinc-500">Channel
+              <select value={channel} onChange={(e) => setChannel(e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/40 px-2 text-sm text-zinc-100 light:border-indigo-950/15 light:bg-white light:text-zinc-900 light:shadow-sm">
                 <option value="whatsapp">whatsapp</option>
                 <option value="instagram">instagram</option>
                 <option value="facebook">facebook</option>
               </select>
             </label>
-            <label className="block text-xs text-zinc-400">Recipient
-              <input value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="+15550102030" className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/40 px-2 font-mono text-sm text-zinc-100" />
+            <label className="block text-xs text-zinc-400 light:text-zinc-500">Recipient
+              <input value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="+15550102030" className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/40 px-2 font-mono text-sm text-zinc-100 light:border-indigo-950/15 light:bg-white light:text-zinc-900 light:shadow-sm" />
             </label>
           </div>
-          <label className="block text-xs text-zinc-400">Message
-            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm text-zinc-100" />
+          <label className="block text-xs text-zinc-400 light:text-zinc-500">Message
+            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 p-2 text-sm text-zinc-100 light:border-indigo-950/15 light:bg-white light:text-zinc-900 light:shadow-sm" />
           </label>
-          <label className="block text-xs text-zinc-400">API key (optional — uses your session otherwise)
-            <input value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="mf_test_…" className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/40 px-2 font-mono text-sm text-zinc-100" />
+          <label className="block text-xs text-zinc-400 light:text-zinc-500">API key (optional — uses your session otherwise)
+            <input value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="mf_test_…" className="mt-1 h-10 w-full rounded-lg border border-white/10 bg-black/40 px-2 font-mono text-sm text-zinc-100 light:border-indigo-950/15 light:bg-white light:text-zinc-900 light:shadow-sm" />
           </label>
           <button onClick={() => void send()} disabled={busy || !recipient || !message} className="h-10 rounded-lg bg-indigo-500 px-5 text-sm font-medium text-white hover:bg-indigo-400 disabled:opacity-50">
             {busy ? "Sending…" : "Send request"}
           </button>
-          {error ? <p className="text-xs text-red-300">{error}</p> : null}
+          {error && !result ? <p className="text-xs text-red-300 light:text-red-600">{error}</p> : null}
         </div>
-        <pre className="overflow-auto whitespace-pre-wrap rounded-2xl border border-white/10 bg-black/40 p-4 font-mono text-xs text-zinc-200">
+        <pre className="overflow-auto whitespace-pre-wrap rounded-2xl border border-white/10 bg-black/40 p-4 font-mono text-xs text-zinc-200 light:border-indigo-950/15 light:bg-zinc-950">
           {result ?? "Response will appear here…"}
         </pre>
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-white/10">
-        <p className="border-b border-white/[0.06] bg-white/[0.02] px-4 py-3 text-xs font-medium uppercase tracking-widest text-zinc-500">Recent requests</p>
+      <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 light:border-indigo-950/10 light:bg-white light:shadow-sm">
+        <p className="border-b border-white/[0.06] bg-white/[0.02] px-4 py-3 text-xs font-medium uppercase tracking-widest text-zinc-500 light:border-indigo-950/10 light:bg-zinc-50">Recent requests</p>
         {logs.length === 0 ? (
           <p className="px-4 py-6 text-center text-xs text-zinc-500">No requests logged yet.</p>
         ) : (
           <table className="w-full text-left text-sm">
-            <tbody className="divide-y divide-white/[0.06] text-zinc-300">
+            <tbody className="divide-y divide-white/[0.06] text-zinc-300 light:divide-zinc-900/10 light:text-zinc-600">
               {logs.map((l) => (
                 <tr key={l.id}>
                   <td className="px-4 py-2.5 font-mono text-xs">{l.method}</td>
                   <td className="px-4 py-2.5 font-mono text-xs">{l.path}</td>
-                  <td className={`px-4 py-2.5 font-mono text-xs ${l.status < 400 ? "text-emerald-300" : "text-red-300"}`}>{l.status}</td>
+                  <td className={`px-4 py-2.5 font-mono text-xs ${l.status < 400 ? "text-emerald-300 light:text-emerald-700" : "text-red-300 light:text-red-600"}`}>{l.status}</td>
                   <td className="px-4 py-2.5 font-mono text-xs text-zinc-500">{l.latencyMs}ms · {l.keyId ? "api-key" : "session"}</td>
                 </tr>
               ))}

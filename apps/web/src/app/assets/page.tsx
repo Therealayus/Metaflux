@@ -78,7 +78,7 @@ export default function AssetsPage() {
           action={<Link href="/connections" className="inline-flex h-10 items-center rounded-lg bg-indigo-500 px-5 text-sm font-medium text-white hover:bg-indigo-400">Connect Meta</Link>}
         />
       ) : (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 leading-loose">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 leading-loose light:border-indigo-950/15 light:bg-zinc-950 light:shadow-[0_20px_60px_-24px_rgba(79,70,229,0.35)]">
           {graph.map((n) => (
             <Node key={n.id} node={n} depth={0} />
           ))}

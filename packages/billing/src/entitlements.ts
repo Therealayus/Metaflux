@@ -1,6 +1,6 @@
 import { checkLimit, effectivePlan, type Plan } from "./plans.js";
-import { monthStartIso } from "@metaflux/ai";
-import type { Store } from "@metaflux/database";
+import { monthStartIso } from "@socialflux/ai";
+import type { Store } from "@socialflux/database";
 
 export async function planFor(store: Store, organizationId: string): Promise<Plan> {
   const sub = await store.getSubscription(organizationId);

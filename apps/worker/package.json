@@ -1,5 +1,5 @@
 {
-  "name": "@metaflux/worker",
+  "name": "@socialflux/worker",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -13,14 +13,14 @@
     "clean": "rimraf dist coverage"
   },
   "dependencies": {
-    "@metaflux/meta": "workspace:*",
-    "@metaflux/ai": "workspace:*",
-    "@metaflux/billing": "workspace:*",
-    "@metaflux/security": "workspace:*",
-    "@metaflux/database": "workspace:*",
-    "@metaflux/observability": "workspace:*",
-    "@metaflux/queues": "workspace:*",
-    "@metaflux/workflows": "workspace:*"
+    "@socialflux/meta": "workspace:*",
+    "@socialflux/ai": "workspace:*",
+    "@socialflux/billing": "workspace:*",
+    "@socialflux/security": "workspace:*",
+    "@socialflux/database": "workspace:*",
+    "@socialflux/observability": "workspace:*",
+    "@socialflux/queues": "workspace:*",
+    "@socialflux/workflows": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.17.0",

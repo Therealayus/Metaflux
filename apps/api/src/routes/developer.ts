@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
-import { newApiKey, requireScope, requireSession } from "@metaflux/auth";
-import { getStore } from "@metaflux/database";
-import { MetaApiClient, parseChannel, resolveSender } from "@metaflux/meta";
-import { decryptToken } from "@metaflux/security";
+import { newApiKey, requireScope, requireSession } from "@socialflux/auth";
+import { getStore } from "@socialflux/database";
+import { MetaApiClient, parseChannel, resolveSender } from "@socialflux/meta";
+import { decryptToken } from "@socialflux/security";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { requestId, requireTenant, sendError } from "../tenant.js";
-import { assertMessageBudget } from "@metaflux/billing";
+import { assertMessageBudget } from "@socialflux/billing";
 
 const AVAILABLE_SCOPES = ["messages:send", "events:read", "workflows:read", "workflows:write", "leads:read", "assets:read", "ai:use"];
 

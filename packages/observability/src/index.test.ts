@@ -14,7 +14,7 @@ describe("metrics", () => {
     metrics.httpRequests.inc({ route: "/x", method: "GET", status: "200" });
     metrics.httpLatency.observe(42, { route: "/x" });
     const text = renderMetrics();
-    expect(text).toContain("metaflux_http_requests_total");
+    expect(text).toContain("socialflux_http_requests_total");
     expect(text).toContain("le=\"100\"");
   });
 });

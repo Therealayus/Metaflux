@@ -1,5 +1,5 @@
 {
-  "name": "@metaflux/web",
+  "name": "@socialflux/web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -13,7 +13,7 @@
     "clean": "rimraf .next coverage"
   },
   "dependencies": {
-    "@metaflux/ui": "workspace:*",
+    "@socialflux/ui": "workspace:*",
     "@xyflow/react": "^12.11.6",
     "framer-motion": "^11.13.1",
     "lucide-react": "^0.454.0",
