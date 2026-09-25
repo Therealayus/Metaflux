@@ -1,5 +1,18 @@
 # SocialFlux — Talk to Meta. We'll handle the APIs.
 
+![CI](https://github.com/Therealayus/Metaflux/actions/workflows/ci.yml/badge.svg?branch=main)
+![Node](https://img.shields.io/badge/node-20-339933?logo=node.js&logoColor=white)
+![pnpm](https://img.shields.io/badge/pnpm-9.7.1-F69220?logo=pnpm&logoColor=white)
+![Turbo](https://img.shields.io/badge/turborepo-2.x-EF4444?logo=turborepo&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js&logoColor=white)
+![Fastify](https://img.shields.io/badge/Fastify-5-black?logo=fastify&logoColor=white)
+![Postgres](https://img.shields.io/badge/Postgres-4169E1?logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+
+> Flagship project of [@Therealayus](https://github.com/Therealayus) — see profile for system deep-dive.
+
 Premium AI-native Meta API integration & automation platform. Modular monolith
 (web / api / worker + packages) with clean boundaries for later extraction.
 
